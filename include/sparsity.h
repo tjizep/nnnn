@@ -37,10 +37,13 @@ namespace noodle {
             index_t row;
             index_t col;
             index_t size = block_size;
-            num_t data[block_size];
+            std::array<num_t,block_size> data;
+
             void set_data(const num_t * d, index_t s){
-                memcpy(data, d, s* sizeof(num_t));
+                //memset(&data[0], 0, block_size);
+                memcpy(&data[0], d, s* sizeof(num_t));
                 size = s;
+
             }
 
             value_block_entry(const block_entry& e) : row(e.row), col(e.col), size(e.size) {}
@@ -83,6 +86,10 @@ namespace noodle {
 
             }
         }
+        void learn_more(mat_t& weights, num_t lr){
+
+        }
+
 
         void create_value_mask(const mat_t &weights) {
             valued_blocks.clear();
@@ -130,6 +137,7 @@ namespace noodle {
         void copy_from_weights(const mat_t& weights){
             for (auto &e: valued_blocks) {
                 const num_t *pd = &weights(e.row, e.col);
+
                 e.set_data(pd, e.size);
             }
         }
@@ -299,9 +307,9 @@ namespace noodle {
                 for (auto &e: valued_blocks) {
 
                     if(e.size == block_size){
-                        dot = vec_dot_f32_n<block_size>(e.data, pr+e.col);
+                        dot = vec_dot_f32_n<block_size>(e.data.data(), pr+e.col);
                     }else{
-                        dot = vec_dot_f32(e.size, e.data, pr+e.col);
+                        dot = vec_dot_f32(e.size, e.data.data(), pr+e.col);
                     }
 
                     po[e.row] += dot;
