@@ -60,6 +60,12 @@ namespace noodle {
             }
         };
 
+        struct less_value_block_entry {
+            inline bool operator()(const value_block_entry &x, const value_block_entry &y) {
+                return std::tie(x.row, x.col) < std::tie(y.row, y.col);
+            }
+        };
+
         // the minimum actual sparsity required for block sparsity backprop optimizations to take place
         num_t opt_sparseness_threshold = 0.1;
         std::vector<block_entry> zero_blocks;
@@ -97,6 +103,7 @@ namespace noodle {
             index_t rows = weights.rows();
             for (index_t r = 0; r < rows; ++r) {
                 for (index_t b = 0; b < cols; b += block_size) {
+
                     if (b + block_size < cols) {
                         auto block = weights.block<1, block_size>(r, b);
                         if ((block.array() == 0).count() < block_size) {
@@ -109,6 +116,7 @@ namespace noodle {
                     }
                 }
             }
+            std::sort(valued_blocks.begin(), valued_blocks.end(), less_value_block_entry());
         }
 
         void create_block_mask(const mat_t &weights) {
@@ -118,6 +126,7 @@ namespace noodle {
             index_t rows = weights.rows();
             for (index_t r = 0; r < rows; ++r) {
                 for (index_t b = 0; b < cols; b += block_size) {
+
                     if (b + block_size < cols) {
                         auto block = weights.block<1, block_size>(r, b);
                         if ((block.array() == 0).count() == block_size) {
@@ -132,6 +141,7 @@ namespace noodle {
                     }
                 }
             }
+            std::sort(valued_blocks.begin(), valued_blocks.end(), less_value_block_entry());
             actual_sparseness = get_block_sparseness(weights);
         }
         void copy_from_weights(const mat_t& weights){
@@ -312,23 +322,32 @@ namespace noodle {
          */
         __attribute__((noinline))
         void vec_mul_assign(vec_t &o, const mat_t &l, const vec_t &r) {
-            if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > 10.3) {//){
 
+            if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > 0.6) {
                 o.resize(l.rows(), 1);
                 o.setZero(); /// because its assign not update
                 const num_t *pr = &r(0, 0);
                 num_t *po = &o(0, 0);
-                num_t dot;
+                num_t dot = 0.0;
+
+                index_t currow = valued_blocks.begin()->row;
                 for (auto &e: valued_blocks) {
-
-                    if(e.size == block_size){
-                        dot = vec_dot_f32_n<block_size>(e.data.data(), pr+e.col);
-                    }else{
-                        dot = vec_dot_f32(e.size, e.data.data(), pr+e.col);
+                    if(currow != e.row){
+                        if(currow > e.row){
+                            cout << "sorting error" << endl;
+                        }
+                        po[currow] = dot;
+                        currow = e.row;
+                        dot = 0;
                     }
-
-                    po[e.row] += dot;
+                    if(e.size == block_size){
+                        dot += vec_dot_f32_n<block_size>(e.data.data(), pr+e.col);
+                    }else{
+                        dot += vec_dot_f32(e.size, e.data.data(), pr+e.col);
+                    }
                 }
+                po[currow] = dot;
+
             } else {
                 _base_vec_mul_assign(o, l, r);
             }

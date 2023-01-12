@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
     noodle::num_t leakiness = 40;
     uint32_t model_size = 100;
     noodle::VarLayers model;
-    noodle::num_t sparsity = 0.3;
+    noodle::num_t sparsity = 0.86;
 
 
     model.push_back(noodle::fc_layer{180, model_size,sparsity, momentum});
