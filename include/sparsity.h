@@ -37,8 +37,8 @@ namespace noodle {
             index_t row;
             index_t col;
             index_t size = block_size;
+            index_t learning = 1;
             std::array<num_t,block_size> data;
-
             void set_data(const num_t * d, index_t s){
                 //memset(&data[0], 0, block_size);
                 memcpy(&data[0], d, s* sizeof(num_t));
@@ -211,14 +211,15 @@ namespace noodle {
         }
 
         inline static void vec_mad_f32(const int n, num_t * y, const num_t * x, const float v) {
+
             for (int i = 0; i < n; ++i) {
                 y[i] += x[i]*v;
             }
+
         }
 
         template<int N>
         inline static void vec_mad_f32_n(num_t * a, const num_t * b, const float v) {
-
             __m128 num_b, num_a, mmul, scalar;
             scalar = _mm_set1_ps(v);  // broadcasts scalar to v
             for (auto i = 0; i < N; i += 4) { // I think this gives the compiler a hint to unroll the loop since its a constant
@@ -230,14 +231,22 @@ namespace noodle {
         }
 
         mutable std::vector<num_t> temp_r; // << makes a big difference in perf by not malloc'ing repeatedly (not something the optimizer will do by itself)
+        /**
+         * main component of fc backpropagation
+         * @param o
+         * @param l
+         * @param r
+         * @param to_mul
+         */
         __attribute__((noinline))
-        void project_mul_add(mat_t &o, const vec_t &l, const vec_t &r, num_t to_mul = 0) const {
+        void project_mul_add(mat_t &o, const vec_t &l, const vec_t &r, num_t to_mul = 0)  {
             if (o.size() < l.size()) {
                 o = mat_t::Zero(l.rows(), r.rows());
             }
 
             if (!valued_blocks.empty() && (block_size % 8) == 0 && actual_sparseness > opt_sparseness_threshold) {
 
+                array<num_t, block_size> old;
                 const num_t *pl = &l(0);
                 temp_r.resize(r.rows());
 
@@ -245,7 +254,7 @@ namespace noodle {
                     temp_r[i] = to_mul * r(i);
                 }
 
-                for (auto e: valued_blocks) {
+                for (auto &e: valued_blocks) {
                     //
                     num_t rval = pl[e.row];
                     num_t *pd = &o(e.row, e.col);
@@ -282,7 +291,6 @@ namespace noodle {
             __m128 n1, n2, n3, n4;
             n4 = _mm_setzero_ps();  //sets sum to zero
             for (i = 0; i < N; i += 4) {
-
                 n1 = _mm_loadu_ps(a + i);   //loads unaligned array a into num1  num1= a[3]  a[2]  a[1]  a[0]
                 n2 = _mm_loadu_ps(b + i);   //loads unaligned array b into num2  num2= b[3]   b[2]   b[1]  b[0]
                 n3 = _mm_mul_ps(n1, n2); //performs multiplication   num3 = a[3]*b[3]  a[2]*b[2]  a[1]*b[1]  a[0]*b[0]
@@ -295,9 +303,16 @@ namespace noodle {
             return total;
         }
 
+
+        /**
+         * used in forward propagation
+         * @param o
+         * @param l
+         * @param r
+         */
         __attribute__((noinline))
         void vec_mul_assign(vec_t &o, const mat_t &l, const vec_t &r) {
-            if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > 0.75) {//){
+            if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > 10.3) {//){
 
                 o.resize(l.rows(), 1);
                 o.setZero(); /// because its assign not update
@@ -326,6 +341,7 @@ namespace noodle {
          * @param weights
          * @param error
          */
+        __attribute__((noinline))
         void mask_mul(vec_t &result, const mat_t &weights, const vec_t &error) const {
             // if weights == 50x100
             //  100x1 = 100x50 * 50x1
