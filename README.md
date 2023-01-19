@@ -9,6 +9,8 @@ Mnist can be trained with less than 2 percent loss
 In less than 12 seconds on a single thread and
 Less than 3 seconds using multiple threads.
 
+For comparison mlpack gets worse accuracy using more or less the same architecture in 50 seconds on a single thread on the same hardware 
+
 This is achieved in the following ways
 
 * Non 0 matrix values are extracted and re-ordered
