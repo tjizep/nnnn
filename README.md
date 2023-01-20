@@ -1,4 +1,6 @@
-# Block Sparsity
+# Block Sparsity on CPU
+
+A very different take on openai block sparsity for GPU
 
 A fully connected network is trained with mnist 
 Using block sparsity.
