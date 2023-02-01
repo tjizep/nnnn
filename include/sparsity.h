@@ -10,7 +10,7 @@
 #if defined(__aarch64__)
 #include "sse2neon.h"
 #else
-#include <immintrin.h>
+#include <x86intrin.h>
 #endif
 
 namespace noodle {
@@ -254,7 +254,7 @@ namespace noodle {
                 o = mat_t::Zero(l.rows(), r.rows());
             }
 
-            if (!valued_blocks.empty() && (block_size % 8) == 0 && actual_sparseness > opt_sparseness_threshold) {
+            if (false && !valued_blocks.empty() && (block_size % 8) == 0 && actual_sparseness > opt_sparseness_threshold) {
 
                 array<num_t, block_size> old;
                 const num_t *pl = &l(0);
@@ -297,7 +297,6 @@ namespace noodle {
         inline static num_t vec_dot_f32_n(const num_t * a, const num_t *b) {
             float total;
             int i;
-
             __m128 n1, n2, n3, n4;
             n4 = _mm_setzero_ps();  //sets sum to zero
             for (i = 0; i < N; i += 4) {
@@ -323,7 +322,7 @@ namespace noodle {
         __attribute__((noinline))
         void vec_mul_assign(vec_t &o, const mat_t &l, const vec_t &r) {
 
-            if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > 0.6) {
+            if (false && !valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > 0.6) {
                 o.resize(l.rows(), 1);
                 o.setZero(); /// because its assign not update
                 const num_t *pr = &r(0, 0);

@@ -40,6 +40,8 @@ namespace mnist {
                 file.read(&label, 1);
                 labels.push_back(label);
             }
+        }else{
+            cerr << "could not read label file " << path << endl;
         }
         return labels;
     }
@@ -55,7 +57,7 @@ namespace mnist {
         vector<vec_t> images;
         unordered_map<uint32_t,uint32_t> log_hist;
         if (file.is_open()) {
-            cout << "Reading label file: " << path << endl;
+            cout << "Reading image file: " << path << endl;
 
             file.read(reinterpret_cast<char *>(&magic), 4);
             magic = swap_endian(magic);
@@ -118,6 +120,8 @@ namespace mnist {
                 cout << p.first << " " << p.second << endl;
             }
             cout << max_at << endl;
+        }else{
+            cerr << "Failure reading image file: " << path << endl;
         }
         return images;
     }

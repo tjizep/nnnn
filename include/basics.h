@@ -1,5 +1,7 @@
 #pragma once
-//#define EIGEN_DONT_VECTORIZE
+#define EIGEN_DONT_ALIGN
+#define EIGEN_DONT_VECTORIZE
+
 #include <iostream>
 #include <vector>
 #include <cmath>
