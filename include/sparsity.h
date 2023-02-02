@@ -231,6 +231,8 @@ namespace noodle {
 
         template<int N>
         inline static void vec_mad_f32_n(num_t * a, const num_t * b, const float v) {
+
+#ifdef __AVX__
             __m256 num_b, num_a, mmul, scalar;
             scalar = _mm256_set1_ps(v);  // broadcasts scalar to v
             for (int i = 0; i < N; i += 8) { // I think this gives the compiler a hint to unroll the loop since its a constant
@@ -239,6 +241,20 @@ namespace noodle {
                 mmul = _mm256_mul_ps(num_b, scalar);
                 _mm256_storeu_ps(a + i, _mm256_add_ps(num_a, mmul));
             }
+#elif __SSE2__ || defined(__aarch64__) //using sse2 -> neon
+            __m128 num_b, num_a, mmul, scalar;
+            scalar = _mm_set1_ps(v);  // broadcasts scalar to v
+            for (int i = 0; i < N; i += 8) { // I think this gives the compiler a hint to unroll the loop since its a constant
+                num_b = _mm_loadu_ps(b + i);
+                num_a = _mm_loadu_ps(a + i);
+                mmul = _mm_mul_ps(num_b, scalar);
+                _mm_storeu_ps(a + i, _mm_add_ps(num_a, mmul));
+            }
+#else
+            for (int i = 0; i < N; ++i) {
+                y[i] += x[i]*v;
+            }
+#endif
         }
 
         mutable std::vector<num_t> temp_r; // << makes a big difference in perf by not malloc'ing repeatedly (not something the optimizer will do by itself)
@@ -297,6 +313,18 @@ namespace noodle {
 
         template<int N>
         inline static num_t vec_dot_f32_n(const num_t * a, const num_t *b) {
+
+#ifdef __AVX__
+            __m256 n1, n2, n3, sum;
+            sum = _mm256_setzero_ps();  //sets sum to zero
+            for (int i = 0; i < N; i += 8) {
+                n1 = _mm256_loadu_ps(a + i);   //loads unaligned array a into num1  num1= a[3]  a[2]  a[1]  a[0]
+                n2 = _mm256_loadu_ps(b + i);   //loads unaligned array b into num2  num2= b[3]   b[2]   b[1]  b[0]
+                n3 = _mm256_dp_ps(n1, n2, 0xFF);
+                sum = _mm256_add_ps(sum, n3); // vertical sum
+            }
+            return (num_t)sum[0] + sum[4];
+#elif __SSE2__ || defined(__aarch64__) //using sse2 -> neon
             float total;
             int i;
             __m128 n1, n2, n3, n4;
@@ -312,6 +340,13 @@ namespace noodle {
             n4 = _mm_hadd_ps(n4, n4);
             _mm_store_ss(&total, n4);
             return total;
+#else
+            float total = 0.0;
+            for (int i = 0; i < N; ++i) {
+                total += a[i] * b[i];
+            }
+            return (num_t)total;
+#endif
         }
 
 
