@@ -359,7 +359,7 @@ namespace noodle {
         __attribute__((noinline))
         void vec_mul_assign(vec_t &o, const mat_t &l, const vec_t &r) {
 
-            if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > 0.6) {
+            if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > 0.75) {
                 o.resize(l.rows(), 1);
                 o.setZero(); /// because its assign not update
                 const num_t *pr = &r(0, 0);
