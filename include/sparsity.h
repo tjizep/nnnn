@@ -191,6 +191,7 @@ namespace noodle {
                         if (current_sparseness > sparseness || zeroed > total_blocks/50.0) {
                             create_block_mask(weights);
                             zero_weights(weights);
+                            copy_from_weights(weights);
                             return;
                         }
                     }
@@ -230,13 +231,13 @@ namespace noodle {
 
         template<int N>
         inline static void vec_mad_f32_n(num_t * a, const num_t * b, const float v) {
-            __m128 num_b, num_a, mmul, scalar;
-            scalar = _mm_set1_ps(v);  // broadcasts scalar to v
-            for (auto i = 0; i < N; i += 4) { // I think this gives the compiler a hint to unroll the loop since its a constant
-                num_b = _mm_loadu_ps(b + i);
-                num_a = _mm_loadu_ps(a + i);
-                mmul = _mm_mul_ps(num_b, scalar);
-                _mm_store_ps(a + i, _mm_add_ps(num_a, mmul));
+            __m256 num_b, num_a, mmul, scalar;
+            scalar = _mm256_set1_ps(v);  // broadcasts scalar to v
+            for (int i = 0; i < N; i += 8) { // I think this gives the compiler a hint to unroll the loop since its a constant
+                num_b = _mm256_loadu_ps(b + i);
+                num_a = _mm256_loadu_ps(a + i);
+                mmul = _mm256_mul_ps(num_b, scalar);
+                _mm256_storeu_ps(a + i, _mm256_add_ps(num_a, mmul));
             }
         }
 
@@ -254,25 +255,26 @@ namespace noodle {
                 o = mat_t::Zero(l.rows(), r.rows());
             }
 
-            if (false && !valued_blocks.empty() && (block_size % 8) == 0 && actual_sparseness > opt_sparseness_threshold) {
+            if (!valued_blocks.empty() && (block_size % 8) == 0 && actual_sparseness > opt_sparseness_threshold) {
 
                 array<num_t, block_size> old;
                 const num_t *pl = &l(0);
-                temp_r.resize(r.rows());
-
+                temp_r.resize(r.rows()+16);
+                num_t *temp_a = &temp_r[0];
                 for (index_t i = 0; i < temp_r.size(); ++i) {
-                    temp_r[i] = to_mul * r(i);
+                    temp_a[i] = to_mul * r(i);
                 }
 
                 for (auto &e: valued_blocks) {
-                    //
+
                     num_t rval = pl[e.row];
                     num_t *pd = &o(e.row, e.col);
 
                     if(e.size == block_size){
-                        vec_mad_f32_n<block_size>(pd, &temp_r[e.col], rval);
+
+                        vec_mad_f32_n<block_size>(pd, &temp_a[e.col], rval);
                     }else
-                        vec_mad_f32(e.size, pd, &temp_r[e.col], rval);
+                        vec_mad_f32(e.size, pd, &temp_a[e.col], rval);
                 }
             } else {
                 _base_project_mul_add(o, l, r, to_mul);
@@ -322,7 +324,7 @@ namespace noodle {
         __attribute__((noinline))
         void vec_mul_assign(vec_t &o, const mat_t &l, const vec_t &r) {
 
-            if (false && !valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > 0.6) {
+            if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > 0.6) {
                 o.resize(l.rows(), 1);
                 o.setZero(); /// because its assign not update
                 const num_t *pr = &r(0, 0);
@@ -332,9 +334,6 @@ namespace noodle {
                 index_t currow = valued_blocks.begin()->row;
                 for (auto &e: valued_blocks) {
                     if(currow != e.row){
-                        if(currow > e.row){
-                            cout << "sorting error" << endl;
-                        }
                         po[currow] = dot;
                         currow = e.row;
                         dot = 0;
@@ -355,6 +354,7 @@ namespace noodle {
         /**
          * sparse optimized value masked matrix transpose multiply
          * only multiplies blocks
+         * used in back prop
          * @param result
          * @param weights
          * @param error
