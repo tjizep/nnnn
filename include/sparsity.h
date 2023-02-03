@@ -85,8 +85,13 @@ namespace noodle {
         }
 
         void zero_weights(mat_t &weights) {
-            index_t todo = zero_blocks.size()/150;
-            for (const auto& zb: zero_blocks) {
+            index_t todo = zero_blocks.size()*0.01;
+            std::random_device rd;
+            std::mt19937 g(rd());
+            auto zeroes = zero_blocks;
+            std::shuffle(zeroes.begin(), zeroes.end(), g); // non destructive randomization
+
+            for (const auto& zb: zeroes) {
                 if(todo-- < 0)
                     weights.block<1, block_size>(zb.row, zb.col).array() = 0;
 
@@ -174,7 +179,7 @@ namespace noodle {
             num_t zeroed = 0;
 
             const num_t expand_factor = 4;
-            for (index_t z = 0; z < 9; z++) {
+            for (index_t z = 0; z < 4; z++) {
                 zeroed = 0;
                 for (auto bl: valued_blocks) {
                     if (bl.size != block_size) {
@@ -187,7 +192,7 @@ namespace noodle {
                         block.array() = 0;
                         zeroed++;
                         num_t current_sparseness = ((num_t) zeroed + zero_blocks.size()) * block_size / values;
-                        // TODO: discaver when 15 should change
+                        // mTODO: discover when 15 should change
                         if (current_sparseness > sparseness || zeroed > total_blocks/50.0) {
                             create_block_mask(weights);
                             zero_weights(weights);
@@ -287,7 +292,6 @@ namespace noodle {
                     num_t *pd = &o(e.row, e.col);
 
                     if(e.size == block_size){
-
                         vec_mad_f32_n<block_size>(pd, &temp_a[e.col], rval);
                     }else
                         vec_mad_f32(e.size, pd, &temp_a[e.col], rval);
@@ -359,7 +363,7 @@ namespace noodle {
         __attribute__((noinline))
         void vec_mul_assign(vec_t &o, const mat_t &l, const vec_t &r) {
 
-            if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > 0.75) {
+            if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > 0.6) {
                 o.resize(l.rows(), 1);
                 o.setZero(); /// because its assign not update
                 const num_t *pr = &r(0, 0);

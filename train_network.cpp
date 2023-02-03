@@ -12,12 +12,12 @@ int main(int argc, char *argv[]) {
 #else
     cout << "'Eigen' Vectorization is disabled" << endl;
 #endif
-    size_t num_epochs = 24 ;
+    size_t num_epochs = 17 ;
     noodle::num_t momentum = 0;
     noodle::num_t leakiness = 40;
     uint32_t model_size = 100;
     noodle::VarLayers model;
-    noodle::num_t sparsity = 0.6;
+    noodle::num_t sparsity = 0.63;
 
 
     model.push_back(noodle::fc_layer{180, model_size, sparsity, momentum});
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
     noodle::trainer n(training_inputs, training_outputs, test_inputs, test_labels, mini_batch_size,
                       learning_rate);
 
-    n.stochastic_gradient_descent(num_epochs, model, 4, 75);
+    n.stochastic_gradient_descent(num_epochs, model, 2, 75);
     int ok = n.save_weights_and_biases("weights_and_biases.txt");
     if (ok == 0) {
         cout << "Save OK." << endl;
