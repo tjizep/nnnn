@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
     noodle::trainer n(training_inputs, training_outputs, test_inputs, test_labels, mini_batch_size,
                       learning_rate);
 
-    n.stochastic_gradient_descent(num_epochs, model, 2, 75);
+    n.stochastic_gradient_descent(num_epochs, model, 8, 75);
     int ok = n.save_weights_and_biases("weights_and_biases.txt");
     if (ok == 0) {
         cout << "Save OK." << endl;

@@ -85,22 +85,14 @@ namespace noodle {
         }
 
         void zero_weights(mat_t &weights) {
-            index_t todo = zero_blocks.size()*0.01;
-            std::random_device rd;
-            std::mt19937 g(rd());
-            auto zeroes = zero_blocks;
-            std::shuffle(zeroes.begin(), zeroes.end(), g); // non destructive randomization
+            index_t todo = 1; //zero_blocks.size()*0.005;
 
-            for (const auto& zb: zeroes) {
+            for (const auto& zb: zero_blocks) {
                 if(todo-- < 0)
                     weights.block<1, block_size>(zb.row, zb.col).array() = 0;
 
             }
         }
-        void learn_more(mat_t& weights, num_t lr){
-
-        }
-
 
         void create_value_mask(const mat_t &weights) {
             valued_blocks.clear();
