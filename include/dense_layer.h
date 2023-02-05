@@ -50,7 +50,7 @@ namespace noodle {
             this->in_size = in_size;
             this->out_size = out_size;
             this->momentum = momentum;
-            this->sparseness.sparseness = sparseness;
+            this->sparseness.sparseness = std::min<num_t>(0.89, abs(sparseness));
             initialize_weights();
 
         }
@@ -91,6 +91,9 @@ namespace noodle {
         }
         num_t get_weights_sparseness() const {
             return sparseness.get_sparseness(weights);
+        }
+        num_t get_weights_zeroes() const {
+            return sparseness.get_zeroes(weights);
         }
 
         void start_batch(){
@@ -588,9 +591,15 @@ namespace noodle {
             return 0;
         }
 
-        num_t get_weights_sparseness() const {
+        num_t get_weights_zeroes() const {
             if constexpr(has_member(V, get_weights_sparseness())) {
-                return impl.get_weights_sparseness();
+                return impl.get_weights_zeroes();
+            }
+            return 0;
+        }
+        num_t get_weights_size() const {
+            if constexpr(has_member(V, get_weights_sparseness())) {
+                return impl.get_weights().size();
             }
             return 0;
         }
@@ -743,9 +752,14 @@ namespace noodle {
         }, v);
     }
 
-    num_t vwr_get_weights_sparseness(const layer &v) {
+    num_t var_get_weights_zeroes(const layer &v) {
         return std::visit([](auto &&arg) -> num_t {
-            return arg.get_weights_sparseness();
+            return arg.get_weights_zeroes();
+        }, v);
+    }
+    num_t var_get_weights_size(const layer &v) {
+        return std::visit([](auto &&arg) -> num_t {
+            return arg.get_weights_size();
         }, v);
     }
 

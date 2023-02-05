@@ -77,6 +77,9 @@ namespace noodle {
         num_t get_sparseness(const mat_t &w) const {
             return (num_t) (w.array() == 0).count() / (num_t) w.size();
         }
+        num_t get_zeroes(const mat_t &w) const {
+            return (num_t) (w.array() == 0).count();
+        }
 
         num_t get_block_sparseness(const mat_t &weights) const {
             num_t zeroes = zero_blocks.size() * block_size;
@@ -355,7 +358,7 @@ namespace noodle {
         __attribute__((noinline))
         void vec_mul_assign(vec_t &o, const mat_t &l, const vec_t &r) {
 
-            if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > 0.6) {
+            if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > 0.75) {
                 o.resize(l.rows(), 1);
                 o.setZero(); /// because its assign not update
                 const num_t *pr = &r(0, 0);
@@ -395,7 +398,7 @@ namespace noodle {
             // if weights == 50x100
             //  100x1 = 100x50 * 50x1
             // result = weights.transpose() * error
-            if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > opt_sparseness_threshold) {
+            if (false && !valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > opt_sparseness_threshold) {
                 result = vec_t::Zero(weights.cols(), 1);
                 for (auto e: valued_blocks) {
                     num_t mr = error(e.row, 0);

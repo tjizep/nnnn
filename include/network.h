@@ -168,9 +168,13 @@ namespace noodle {
             cout << "Best Epoch " << best_epoch;
             print_accuracy(",",best_perf);
 
+            num_t total_vars = 0;
+            num_t total_zeroes = 0;
             for(auto& l : best_model){
-                cout << var_get_name(l) << " " << var_get_weights_norm(l) << " sparseness " << vwr_get_weights_sparseness(l) << endl;
+                total_zeroes += var_get_weights_zeroes(l);
+                total_vars += var_get_weights_size(l);
             }
+            cout << "model sparsity " << total_zeroes/total_vars << endl;
 
             auto epoch_time_end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<float> diff = epoch_time_end - sgd_timer;
