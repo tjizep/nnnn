@@ -14,10 +14,10 @@ int main(int argc, char *argv[]) {
 #endif
     size_t num_epochs = 20 ;
     noodle::num_t momentum = 0;
-    noodle::num_t leakiness = 40;
-    uint32_t model_size = 100;
+    noodle::num_t leakiness = 50;
+    uint32_t model_size = 50;
     noodle::VarLayers model;
-    noodle::num_t sparsity = 0.654321;
+    noodle::num_t sparsity = 0.6;
 
 
     model.push_back(noodle::fc_layer{180, model_size, sparsity, momentum});
@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
 
     model.push_back(noodle::fc_layer{model_size/2, model_size/2,sparsity/1.8f, momentum});
     model.push_back(noodle::relu_layer{leakiness});
-    //model.push_back(noodle::low_sigmoid_layer{0.36});// TODO: make this a learned parameter
+    //model.push_back(noodle::low_sigmoid_layer{0.36});
     //model.push_back(noodle::dropout_layer{0.2});
     model.push_back(noodle::fc_layer{model_size/2, 10, sparsity/4.0f, momentum});
     model.push_back(noodle::soft_max_layer{});

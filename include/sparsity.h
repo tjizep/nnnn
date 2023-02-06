@@ -37,7 +37,7 @@ namespace noodle {
             index_t row;
             index_t col;
             index_t size = block_size;
-            index_t learning = 1;
+
             std::array<num_t,block_size> data;
             void set_data(const num_t * d, index_t s){
                 //memset(&data[0], 0, block_size);
@@ -228,6 +228,13 @@ namespace noodle {
             }
 
         }
+        inline static num_t vec_sum_mad_f32(const int n, const num_t * y, const float v) {
+            num_t r = 0.0;
+            for (int i = 0; i < n; ++i) {
+                r += y[i] * v;
+            }
+            return r;
+        }
 
         template<int N>
         inline static void vec_mad_f32_n(num_t * a, const num_t * b, const float v) {
@@ -244,11 +251,11 @@ namespace noodle {
 #elif __SSE2__ || defined(__aarch64__) //using sse2 -> neon
             __m128 num_b, num_a, mmul, scalar;
             scalar = _mm_set1_ps(v);  // broadcasts scalar to v
-            for (int i = 0; i < N; i += 8) { // I think this gives the compiler a hint to unroll the loop since its a constant
+            for (auto i = 0; i < N; i += 4) { // I think this gives the compiler a hint to unroll the loop since its a constant
                 num_b = _mm_loadu_ps(b + i);
                 num_a = _mm_loadu_ps(a + i);
                 mmul = _mm_mul_ps(num_b, scalar);
-                _mm_storeu_ps(a + i, _mm_add_ps(num_a, mmul));
+                _mm_store_ps(a + i, _mm_add_ps(num_a, mmul));
             }
 #else
             for (int i = 0; i < N; ++i) {
@@ -304,10 +311,11 @@ namespace noodle {
         inline static num_t vec_dot_f32(const int n, const num_t * x, const num_t * y) {
             num_t sum = 0.0;
             for (int i = 0; i < n; ++i) {
-                sum += x[i] * y[i];
+                sum += (x[i] * y[i]);
             }
             return sum;
         }
+
 
 
         template<int N>
@@ -358,29 +366,55 @@ namespace noodle {
         __attribute__((noinline))
         void vec_mul_assign(vec_t &o, const mat_t &l, const vec_t &r) {
 
-            if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > 0.75) {
+            if (!valued_blocks.empty() && (block_size % 8) == 0 && actual_sparseness > 0.85) {
                 o.resize(l.rows(), 1);
                 o.setZero(); /// because its assign not update
                 const num_t *pr = &r(0, 0);
+
+                index_t r_size = r.rows();
                 num_t *po = &o(0, 0);
                 num_t dot = 0.0;
 
                 index_t currow = valued_blocks.begin()->row;
+
+#if 0
+                vector<bool> is_zeroes(r_size);
+                bool prev_is_z = false;
+                for(index_t pz = 0; pz < r_size; ++pz) {
+                    bool is_z = true;
+                    index_t end = std::min<index_t>(pz+block_size, r_size);
+                    if(prev_is_z && pr[end-1] == 0.0){
+                        is_z = true;
+                    } else {
+
+                        for (index_t z = pz; z < end; ++z) {
+                            if (pr[z] != 0.0) {
+                                is_z = false;
+                                break;
+                            }
+                        }
+                    }
+                    is_zeroes[pz] = is_z;
+                    prev_is_z = is_z;
+                }
+#endif
                 for (auto &e: valued_blocks) {
                     if(currow != e.row){
                         po[currow] = dot;
                         currow = e.row;
                         dot = 0;
                     }
-                    if(e.size == block_size){
-                        dot += vec_dot_f32_n<block_size>(e.data.data(), pr+e.col);
+
+                    if( e.size == block_size){
+                        //if(!is_zeroes[e.col])
+                            dot += vec_dot_f32_n<block_size>(e.data.data(), pr+e.col);
                     }else{
                         dot += vec_dot_f32(e.size, e.data.data(), pr+e.col);
                     }
                 }
                 po[currow] = dot;
-
             } else {
+
                 _base_vec_mul_assign(o, l, r);
             }
         }
@@ -398,7 +432,7 @@ namespace noodle {
             // if weights == 50x100
             //  100x1 = 100x50 * 50x1
             // result = weights.transpose() * error
-            if (false && !valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > opt_sparseness_threshold) {
+            if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > opt_sparseness_threshold) {
                 result = vec_t::Zero(weights.cols(), 1);
                 for (auto e: valued_blocks) {
                     num_t mr = error(e.row, 0);

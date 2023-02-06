@@ -20,7 +20,7 @@ namespace noodle {
     using namespace Eigen;
 
     typedef float num_t;
-    typedef int64_t index_t;
+    typedef int32_t index_t;
     typedef VectorXf  vec_t;
 
     typedef Matrix<num_t, Dynamic, Dynamic, RowMajor> mat_t;//MatrixXf
