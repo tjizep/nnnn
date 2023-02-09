@@ -20,4 +20,4 @@ This is achieved in the following ways
 * SIMD routines for blockwise dot product and scalar vector multiplication are added
 * Block sparsity is gradually added during the first few epochs which then also reduces forward multiplies
 
-Note: the 'windwos' branch is currently being developed
+Note: the 'windows' branch is currently being developed
