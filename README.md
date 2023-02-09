@@ -19,3 +19,5 @@ This is achieved in the following ways
 * Cache optimized routines for matrix vector multiply during backprop using blocks instead of individual values
 * SIMD routines for blockwise dot product and scalar vector multiplication are added
 * Block sparsity is gradually added during the first few epochs which then also reduces forward multiplies
+
+Note: the 'windwos' branch is currently being developed
