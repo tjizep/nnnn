@@ -7,10 +7,13 @@
 
 #include <basics.h>
 #include <vector>
+
 #if defined(__aarch64__)
 #include "sse2neon.h"
 #else
+
 #include <x86intrin.h>
+
 #endif
 
 namespace noodle {
@@ -38,24 +41,26 @@ namespace noodle {
             index_t col;
             index_t size = block_size;
 
-            std::array<num_t,block_size> data;
-            void set_data(const num_t * d, index_t s){
+            std::array<num_t, block_size> data;
+
+            void set_data(const num_t *d, index_t s) {
                 //memset(&data[0], 0, block_size);
-                memcpy(&data[0], d, s* sizeof(num_t));
+                memcpy(&data[0], d, s * sizeof(num_t));
                 size = s;
 
             }
 
-            value_block_entry(const block_entry& e) : row(e.row), col(e.col), size(e.size) {}
+            value_block_entry(const block_entry &e) : row(e.row), col(e.col), size(e.size) {}
 
             value_block_entry(index_t row, index_t col) : row(row), col(col) {}
 
             value_block_entry(index_t row, index_t col, index_t size) : row(row), col(col), size(size) {}
 
-            value_block_entry(index_t row, index_t col, const num_t * data, index_t size) : row(row), col(col) {
+            value_block_entry(index_t row, index_t col, const num_t *data, index_t size) : row(row), col(col) {
                 set_data(data, size);
             }
-            value_block_entry(index_t row, index_t col, const num_t * data) : row(row), col(col) {
+
+            value_block_entry(index_t row, index_t col, const num_t *data) : row(row), col(col) {
                 set_data(data, block_size);
             }
         };
@@ -77,6 +82,7 @@ namespace noodle {
         num_t get_sparseness(const mat_t &w) const {
             return (num_t) (w.array() == 0).count() / (num_t) w.size();
         }
+
         num_t get_zeroes(const mat_t &w) const {
             return (num_t) (w.array() == 0).count();
         }
@@ -88,10 +94,10 @@ namespace noodle {
         }
 
         void zero_weights(mat_t &weights) {
-            index_t todo = 1; //zero_blocks.size()*0.005;
+            index_t todo = 1;//zero_blocks.size()*0.05;
 
-            for (const auto& zb: zero_blocks) {
-                if(todo-- < 0)
+            for (const auto &zb: zero_blocks) {
+                if (todo-- < 0)
                     weights.block<1, block_size>(zb.row, zb.col).array() = 0;
 
             }
@@ -107,12 +113,12 @@ namespace noodle {
                     if (b + block_size < cols) {
                         auto block = weights.block<1, block_size>(r, b);
                         if ((block.array() == 0).count() < block_size) {
-                            valued_blocks.push_back({r, b, &weights(r,b)});
+                            valued_blocks.push_back({r, b, &weights(r, b)});
                         }
                     } else {
                         index_t diff = b + block_size - cols;
                         assert(diff <= block_size);
-                        valued_blocks.push_back({r, b, &weights(r,b),block_size - diff});
+                        valued_blocks.push_back({r, b, &weights(r, b), block_size - diff});
                     }
                 }
             }
@@ -144,13 +150,15 @@ namespace noodle {
             std::sort(valued_blocks.begin(), valued_blocks.end(), less_value_block_entry());
             actual_sparseness = get_block_sparseness(weights);
         }
-        void copy_from_weights(const mat_t& weights){
+
+        void copy_from_weights(const mat_t &weights) {
             for (auto &e: valued_blocks) {
                 const num_t *pd = &weights(e.row, e.col);
 
                 e.set_data(pd, e.size);
             }
         }
+
         __attribute__((noinline))
         void reduce_weights(mat_t &weights, index_t levl) {
             zero_weights(weights);
@@ -183,12 +191,12 @@ namespace noodle {
                     auto block = weights.block<1, block_size>(bl.row, bl.col);
                     num_t b_avg = block.array().abs().mean();
 
-                    if ( b_avg < high_water ) {//|| bl.row < weights.rows()/8
+                    if (b_avg < high_water) {//|| bl.row < weights.rows()/8
                         block.array() = 0;
                         zeroed++;
                         num_t current_sparseness = ((num_t) zeroed + zero_blocks.size()) * block_size / values;
                         // mTODO: discover when 15 should change
-                        if (current_sparseness > sparseness || zeroed > total_blocks/50.0) {
+                        if (current_sparseness > sparseness || zeroed > total_blocks / 50.0) {
                             create_block_mask(weights);
                             zero_weights(weights);
                             copy_from_weights(weights);
@@ -221,14 +229,15 @@ namespace noodle {
             o += t;
         }
 
-        inline static void vec_mad_f32(const int n, num_t * y, const num_t * x, const float v) {
+        inline static void vec_mad_f32(const int n, num_t *y, const num_t *x, const float v) {
 
             for (int i = 0; i < n; ++i) {
-                y[i] += x[i]*v;
+                y[i] += x[i] * v;
             }
 
         }
-        inline static num_t vec_sum_mad_f32(const int n, const num_t * y, const float v) {
+
+        inline static num_t vec_sum_mad_f32(const int n, const num_t *y, const float v) {
             num_t r = 0.0;
             for (int i = 0; i < n; ++i) {
                 r += y[i] * v;
@@ -237,12 +246,13 @@ namespace noodle {
         }
 
         template<int N>
-        inline static void vec_mad_f32_n(num_t * a, const num_t * b, const float v) {
+        inline static void vec_mad_f32_n(num_t *a, const num_t *b, const float v) {
 
 #ifdef __AVX__
             __m256 num_b, num_a, mmul, scalar;
             scalar = _mm256_set1_ps(v);  // broadcasts scalar to v
-            for (int i = 0; i < N; i += 8) { // I think this gives the compiler a hint to unroll the loop since its a constant
+            for (int i = 0;
+                 i < N; i += 8) { // I think this gives the compiler a hint to unroll the loop since its a constant
                 num_b = _mm256_loadu_ps(b + i);
                 num_a = _mm256_loadu_ps(a + i);
                 mmul = _mm256_mul_ps(num_b, scalar);
@@ -273,7 +283,7 @@ namespace noodle {
          * @param to_mul
          */
         __attribute__((noinline))
-        void project_mul_add(mat_t &o, const vec_t &l, const vec_t &r, num_t to_mul = 0)  {
+        void project_mul_add(mat_t &o, const vec_t &l, const vec_t &r, num_t to_mul = 0) {
             if (o.size() < l.size()) {
                 o = mat_t::Zero(l.rows(), r.rows());
             }
@@ -282,7 +292,7 @@ namespace noodle {
 
                 array<num_t, block_size> old;
                 const num_t *pl = &l(0);
-                temp_r.resize(r.rows()+16);
+                temp_r.resize(r.rows() + 16);
                 num_t *temp_a = &temp_r[0];
                 for (index_t i = 0; i < temp_r.size(); ++i) {
                     temp_a[i] = to_mul * r(i);
@@ -293,9 +303,9 @@ namespace noodle {
                     num_t rval = pl[e.row];
                     num_t *pd = &o(e.row, e.col);
 
-                    if(e.size == block_size){
+                    if (e.size == block_size) {
                         vec_mad_f32_n<block_size>(pd, &temp_a[e.col], rval);
-                    }else
+                    } else
                         vec_mad_f32(e.size, pd, &temp_a[e.col], rval);
                 }
             } else {
@@ -308,7 +318,7 @@ namespace noodle {
             o = l * r;
         }
 
-        inline static num_t vec_dot_f32(const int n, const num_t * x, const num_t * y) {
+        inline static num_t vec_dot_f32(const int n, const num_t *x, const num_t *y) {
             num_t sum = 0.0;
             for (int i = 0; i < n; ++i) {
                 sum += (x[i] * y[i]);
@@ -317,9 +327,8 @@ namespace noodle {
         }
 
 
-
         template<int N>
-        inline static num_t vec_dot_f32_n(const num_t * a, const num_t *b) {
+        inline static num_t vec_dot_f32_n(const num_t *a, const num_t *b) {
 
 #ifdef __AVX__
             __m256 n1, n2, n3, sum;
@@ -330,7 +339,7 @@ namespace noodle {
                 n3 = _mm256_dp_ps(n1, n2, 0xFF);
                 sum = _mm256_add_ps(sum, n3); // vertical sum
             }
-            return (num_t)sum[0] + sum[4];
+            return (num_t) sum[0] + sum[4];
 #elif __SSE2__ || defined(__aarch64__) //using sse2 -> neon
             float total;
             int i;
@@ -366,7 +375,7 @@ namespace noodle {
         __attribute__((noinline))
         void vec_mul_assign(vec_t &o, const mat_t &l, const vec_t &r) {
 
-            if (!valued_blocks.empty() && (block_size % 8) == 0 && actual_sparseness > 0.85) {
+            if (!valued_blocks.empty() && (block_size % 8) == 0 && actual_sparseness > 0.3) {
                 o.resize(l.rows(), 1);
                 o.setZero(); /// because its assign not update
                 const num_t *pr = &r(0, 0);
@@ -377,39 +386,17 @@ namespace noodle {
 
                 index_t currow = valued_blocks.begin()->row;
 
-#if 0
-                vector<bool> is_zeroes(r_size);
-                bool prev_is_z = false;
-                for(index_t pz = 0; pz < r_size; ++pz) {
-                    bool is_z = true;
-                    index_t end = std::min<index_t>(pz+block_size, r_size);
-                    if(prev_is_z && pr[end-1] == 0.0){
-                        is_z = true;
-                    } else {
-
-                        for (index_t z = pz; z < end; ++z) {
-                            if (pr[z] != 0.0) {
-                                is_z = false;
-                                break;
-                            }
-                        }
-                    }
-                    is_zeroes[pz] = is_z;
-                    prev_is_z = is_z;
-                }
-#endif
                 for (auto &e: valued_blocks) {
-                    if(currow != e.row){
+                    if (currow != e.row) {
                         po[currow] = dot;
                         currow = e.row;
                         dot = 0;
                     }
 
-                    if( e.size == block_size){
-                        //if(!is_zeroes[e.col])
-                            dot += vec_dot_f32_n<block_size>(e.data.data(), pr+e.col);
-                    }else{
-                        dot += vec_dot_f32(e.size, e.data.data(), pr+e.col);
+                    if (e.size == block_size) {
+                        dot += vec_dot_f32_n<block_size>(e.data.data(), pr + e.col);
+                    } else {
+                        dot += vec_dot_f32(e.size, e.data.data(), pr + e.col);
                     }
                 }
                 po[currow] = dot;
@@ -436,14 +423,14 @@ namespace noodle {
                 result = vec_t::Zero(weights.cols(), 1);
                 for (auto e: valued_blocks) {
                     num_t mr = error(e.row, 0);
-                    num_t * pr = &result(e.col, 0);
-                    const num_t * pl = &weights(e.row, e.col);
-                    if(e.size == block_size){
+                    num_t *pr = &result(e.col, 0);
+                    const num_t *pl = &weights(e.row, e.col);
+                    if (e.size == block_size) {
                         vec_mad_f32_n<block_size>(pr, pl, mr);// << auto loop unrolled version
-                    }else
+                    } else
                         vec_mad_f32(e.size, pr, pl, mr);
                 }
-          } else {
+            } else {
                 result = weights.transpose() * error;
             }
         }

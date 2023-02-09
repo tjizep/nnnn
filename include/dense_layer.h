@@ -89,22 +89,24 @@ namespace noodle {
         vec_t &get_input() {
             return input;
         }
+
         num_t get_weights_sparseness() const {
             return sparseness.get_sparseness(weights);
         }
+
         num_t get_weights_zeroes() const {
             return sparseness.get_zeroes(weights);
         }
 
-        void start_batch(){
+        void start_batch() {
         }
 
-        void end_batch(){
+        void end_batch() {
         }
 
 
         void update_weights(const num_t train_percent) {
-            if(mini_batch_update_weights.size()==0) return;
+            if (mini_batch_update_weights.size() == 0) return;
 
             weights += mini_batch_update_weights;
             biases += mini_batch_update_biases;
@@ -137,19 +139,20 @@ namespace noodle {
                 assign_add(mini_batch_update_biases, fc.mini_batch_update_biases);
             }
         }
-        void raw_copy_from(const fc_layer &fc) {
-           // *this = fc;
 
-            if(weights.size() > 0 && fc.weights.size() == weights.size()){
+        void raw_copy_from(const fc_layer &fc) {
+            // *this = fc;
+
+            if (weights.size() > 0 && fc.weights.size() == weights.size()) {
                 //memcpy(&weights(0), &fc.weights(0), sizeof(num_t) * weights.size());
                 weights = fc.weights;
-            }else{
+            } else {
                 weights = fc.weights;
             }
-            if(biases.size() > 0 && fc.biases.size() == biases.size()){
+            if (biases.size() > 0 && fc.biases.size() == biases.size()) {
                 //memcpy(&biases(0), &fc.biases(0), sizeof(num_t) * biases.size());
                 //biases = fc.biases;
-            }else{
+            } else {
                 biases = fc.biases;
             }
             in_size = fc.in_size;
@@ -164,8 +167,9 @@ namespace noodle {
             mini_batch_update_biases = fc.mini_batch_update_biases;
 
         }
+
         __attribute__((noinline))
-        void update_mini_batch_weights(num_t learning_rate, const vec_t output_error){
+        void update_mini_batch_weights(num_t learning_rate, const vec_t output_error) {
 
             vec_t b_delta;
 
@@ -174,6 +178,7 @@ namespace noodle {
             //assign_add(mini_batch_update_weights, weights_error);
             assign_add(mini_batch_update_biases, b_delta);
         }
+
         /// output error is from next layer below this one (since its reverse prop) or start
         vec_t bp(const vec_t &output_error, num_t learning_rate) {
 
@@ -547,7 +552,7 @@ namespace noodle {
          * @param mini_batch_size
          */
         void update_weights(num_t train_percent) {
-            if constexpr(has_member(V, update_weights(0)))
+            if constexpr (has_member(V, update_weights(0)))
                 impl.update_weights(train_percent);
         }
 
@@ -557,15 +562,17 @@ namespace noodle {
          * @return
          */
         bool update_bp_from(const model_member<V> &source) {
-            if constexpr(has_member(V, update_bp_from(source.impl)))
+            if constexpr (has_member(V, update_bp_from(source.impl)))
                 impl.update_bp_from(source.impl);
             return true;
         }
-        bool raw_copy_from(const  model_member<V> &source) {
-            if constexpr(has_member(V, raw_copy_from(source.impl)))
+
+        bool raw_copy_from(const model_member<V> &source) {
+            if constexpr (has_member(V, raw_copy_from(source.impl)))
                 impl.raw_copy_from(source.impl);
             return true;
         }
+
         /**
          * send back propagation to concrete impl
          * @param input_error
@@ -581,49 +588,50 @@ namespace noodle {
         }
 
         void set_training(bool training) {
-            if constexpr(has_member(V, set_training(true)))
+            if constexpr (has_member(V, set_training(true)))
                 return impl.set_training(training);
         }
 
         num_t get_weights_norm() const {
-            if constexpr(has_member(V, get_weights()))
+            if constexpr (has_member(V, get_weights()))
                 return impl.get_weights().norm();
             return 0;
         }
 
         num_t get_weights_zeroes() const {
-            if constexpr(has_member(V, get_weights_sparseness())) {
+            if constexpr (has_member(V, get_weights_sparseness())) {
                 return impl.get_weights_zeroes();
             }
             return 0;
         }
+
         num_t get_weights_size() const {
-            if constexpr(has_member(V, get_weights_sparseness())) {
+            if constexpr (has_member(V, get_weights_sparseness())) {
                 return impl.get_weights().size();
             }
             return 0;
         }
 
         void start_sample() {
-            if constexpr(has_member(V, start_sample())) {
+            if constexpr (has_member(V, start_sample())) {
                 impl.start_sample();
             }
         }
 
         void end_sample() {
-            if constexpr(has_member(V, end_sample())) {
+            if constexpr (has_member(V, end_sample())) {
                 impl.end_sample();
             }
         }
 
         void start_batch() {
-            if constexpr(has_member(V, start_batch())) {
+            if constexpr (has_member(V, start_batch())) {
                 impl.start_batch();
             }
         }
 
         void end_batch() {
-            if constexpr(has_member(V, end_batch())) {
+            if constexpr (has_member(V, end_batch())) {
                 impl.end_batch();
             }
         }
@@ -757,6 +765,7 @@ namespace noodle {
             return arg.get_weights_zeroes();
         }, v);
     }
+
     num_t var_get_weights_size(const layer &v) {
         return std::visit([](auto &&arg) -> num_t {
             return arg.get_weights_size();

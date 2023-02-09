@@ -12,22 +12,23 @@ int main(int argc, char *argv[]) {
 #else
     cout << "'Eigen' Vectorization is disabled" << endl;
 #endif
-    size_t num_epochs = 20 ;
+    size_t num_epochs = 24 ;
     noodle::num_t momentum = 0;
     noodle::num_t leakiness = 50;
-    uint32_t model_size = 50;
+    uint32_t model_size = 180;
     noodle::VarLayers model;
-    noodle::num_t sparsity = 0.6;
+    noodle::num_t sparsity = .76;
 
 
-    model.push_back(noodle::fc_layer{180, model_size, sparsity, momentum});
+    model.push_back(noodle::fc_layer{200, model_size, sparsity, momentum});
     model.push_back(noodle::relu_layer{leakiness});
 
-    model.push_back(noodle::fc_layer{model_size, model_size/2, sparsity/1.25f, momentum});
+    model.push_back(noodle::fc_layer{model_size,model_size/2, sparsity, momentum});
     model.push_back(noodle::relu_layer{leakiness});
+
     //model.push_back(noodle::pepper_layer{0.2});
 
-    model.push_back(noodle::fc_layer{model_size/2, model_size/2,sparsity/1.8f, momentum});
+    model.push_back(noodle::fc_layer{model_size/2, model_size/2,sparsity/1.2f, momentum});
     model.push_back(noodle::relu_layer{leakiness});
     //model.push_back(noodle::low_sigmoid_layer{0.36});
     //model.push_back(noodle::dropout_layer{0.2});
@@ -50,7 +51,7 @@ int main(int argc, char *argv[]) {
     noodle::trainer n(training_inputs, training_outputs, test_inputs, test_labels, mini_batch_size,
                       learning_rate);
 
-    n.stochastic_gradient_descent(num_epochs, model, 4, 75);
+    n.stochastic_gradient_descent(model, num_epochs, 4, 75);
     int ok = n.save_weights_and_biases("weights_and_biases.txt");
     if (ok == 0) {
         cout << "Save OK." << endl;

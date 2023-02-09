@@ -1,4 +1,5 @@
 #pragma once
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -17,6 +18,7 @@ namespace mnist {
         val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF);
         return (val << 16) | (val >> 16);
     }
+
     static std::vector<int> get_labels(string path) {
         ifstream file(path, ios::in | ios::binary);
         uint32_t magic;
@@ -40,7 +42,7 @@ namespace mnist {
                 file.read(&label, 1);
                 labels.push_back(label);
             }
-        }else{
+        } else {
             cerr << "could not read label file " << path << endl;
         }
         return labels;
@@ -55,7 +57,7 @@ namespace mnist {
         uint32_t cols;
         vector<uint8_t> pixels;
         vector<vec_t> images;
-        unordered_map<uint32_t,uint32_t> log_hist;
+        unordered_map<uint32_t, uint32_t> log_hist;
         if (file.is_open()) {
             cout << "Reading image file: " << path << endl;
 
@@ -80,10 +82,10 @@ namespace mnist {
             size_t at = 0;
             size_t max_at = 0;
             const float total_pixels = rows * cols;
-            const float VECT_SIZE = 180;
+            const float VECT_SIZE = 200;
 
             for (uint32_t i = 0; i < image_count; i++) {
-                file.read((char *)pixels.data(), rows * cols);
+                file.read((char *) pixels.data(), rows * cols);
                 vec_t image = vec_t::Constant(VECT_SIZE, 0);
                 size_t at = 0;
                 uint32_t offset = 0;
@@ -96,7 +98,7 @@ namespace mnist {
                     //if(j % cols == 0) cout << endl;
                     //cout.width(4);
                     //cout << pj;
-                    uint32_t ip = floor((j-offset) * VECT_SIZE / total_pixels);
+                    uint32_t ip = floor((j - offset) * VECT_SIZE / total_pixels);
                     //uint32_t lp
 
                     //log_hist[lp]++;
@@ -116,11 +118,11 @@ namespace mnist {
                 max_at = std::max<size_t>(at, max_at);
                 images.push_back(image);
             }
-            for(auto p : log_hist){
+            for (auto p: log_hist) {
                 cout << p.first << " " << p.second << endl;
             }
             cout << max_at << endl;
-        }else{
+        } else {
             cerr << "Failure reading image file: " << path << endl;
         }
         return images;
