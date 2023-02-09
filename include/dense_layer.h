@@ -50,7 +50,7 @@ namespace noodle {
             this->in_size = in_size;
             this->out_size = out_size;
             this->momentum = momentum;
-            this->sparseness.sparseness = sparseness;
+            this->sparseness.sparseness = std::min<num_t>(0.89, abs(sparseness));
             initialize_weights();
 
         }

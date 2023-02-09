@@ -4,6 +4,7 @@
 
 #ifndef NNNN_OPTIMIZERS_H
 #define NNNN_OPTIMIZERS_H
+
 #include <basics.h>
 
 namespace noodle {
@@ -71,7 +72,7 @@ namespace noodle {
             size_t mini_batch_size;
 
             sgd(num_t learning_rate, size_t mini_batch_size) : learning_rate(learning_rate),
-                                                              mini_batch_size(mini_batch_size) {
+                                                               mini_batch_size(mini_batch_size) {
 
             }
 
