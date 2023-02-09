@@ -49,7 +49,7 @@ namespace mnist {
     }
 
     template<typename vec_t>
-    static std::vector<vec_t> get_images(string path) {
+    static std::vector<vec_t> get_images(string path, uint32_t vsize) {
         ifstream file(path, ios::in | ios::binary);
         uint32_t magic;
         uint32_t image_count;
@@ -82,7 +82,7 @@ namespace mnist {
             size_t at = 0;
             size_t max_at = 0;
             const float total_pixels = rows * cols;
-            const float VECT_SIZE = 180;
+            const float VECT_SIZE = vsize;
 
             for (uint32_t i = 0; i < image_count; i++) {
                 file.read((char *) pixels.data(), rows * cols);

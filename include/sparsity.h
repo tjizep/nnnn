@@ -78,6 +78,7 @@ namespace noodle {
 
         num_t sparseness = 0;
         num_t actual_sparseness = 0;
+        num_t sparsity_greediness = 2.5;
 
         num_t get_sparseness(const mat_t &w) const {
             return (num_t) (w.array() == 0).count() / (num_t) w.size();
@@ -181,7 +182,7 @@ namespace noodle {
             num_t values = weights.size();
             num_t zeroed = 0;
 
-            const num_t expand_factor = 4;
+            const num_t expand_factor = sparsity_greediness; /// this number varies from data set to data set and model etc
             for (index_t z = 0; z < 4; z++) {
                 zeroed = 0;
                 for (auto bl: valued_blocks) {
@@ -196,7 +197,7 @@ namespace noodle {
                         zeroed++;
                         num_t current_sparseness = ((num_t) zeroed + zero_blocks.size()) * block_size / values;
                         // mTODO: discover when 15 should change
-                        if (current_sparseness > sparseness || zeroed > total_blocks / 50.0) {
+                        if (current_sparseness > sparseness || zeroed > total_blocks / 40.0) {
                             create_block_mask(weights);
                             zero_weights(weights);
                             copy_from_weights(weights);
@@ -422,14 +423,14 @@ namespace noodle {
                 result = vec_t::Zero(weights.cols(), 1);
                 for (auto e: valued_blocks) {
                     num_t mr = error(e.row, 0);
-                    num_t * pr = &result(e.col, 0);
-                    const num_t * pl = &weights(e.row, e.col);
-                    if(e.size == block_size){
+                    num_t *pr = &result(e.col, 0);
+                    const num_t *pl = &weights(e.row, e.col);
+                    if (e.size == block_size) {
                         vec_mad_f32_n<block_size>(pr, pl, mr);// << auto loop unrolled version
-                    }else
+                    } else
                         vec_mad_f32(e.size, pr, pl, mr);
                 }
-          } else {
+            } else {
                 result = weights.transpose() * error;
             }
         }

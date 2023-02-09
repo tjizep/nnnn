@@ -19,10 +19,10 @@ namespace noodle {
 
     typedef float num_t;
     typedef int64_t index_t;
-    typedef VectorXf  vec_t;
+    typedef VectorXf vec_t;
 
     typedef Matrix<num_t, Dynamic, Dynamic, RowMajor> mat_t;//MatrixXf
-    typedef SparseMatrix <num_t> sparse_mat_t;
+    typedef SparseMatrix<num_t> sparse_mat_t;
 
     static inline vec_t NULL_V() { return vec_t::Constant(0, 0); }
 
@@ -31,13 +31,15 @@ namespace noodle {
     static inline sparse_mat_t NULL_SM() { return sparse_mat_t(0, 0); }
 
     template<typename vT>
-    static inline bool has_nan(vT& v){
+    static inline bool has_nan(vT &v) {
         return !(((v.array() == v.array())).all());
     }
+
     template<typename vT>
-    static inline bool has_inf(vT& v){
-        return !(( (v - v).array() == (v - v).array()).all());
+    static inline bool has_inf(vT &v) {
+        return !(((v - v).array() == (v - v).array()).all());
     }
+
     // correct assign addition
     template<typename bT>
     static inline void assign_add(bT &a, const bT &b) {

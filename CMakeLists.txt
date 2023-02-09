@@ -10,4 +10,4 @@ find_package( Eigen3 REQUIRED )
 include_directories(include ${EIGEN3_INCLUDE_DIR})
 message(STATUS "Eigen include dir : ${EIGEN3_INCLUDE_DIR} the eigen" )
 
-add_executable(nnnn train_network.cpp include/activations.h include/optimizers.h include/sparsity.h include/sse2neon.h)
+add_executable(nnnn train_network.cpp include/activations.h include/optimizers.h include/sparsity.h include/sse2neon.h include/model.h include/abstract_layer.h)

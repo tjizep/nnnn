@@ -4,11 +4,12 @@
 #include <basics.h>
 #include <activations.h>
 #include <optimizers.h>
-#include <sparsity.h>
+
 #include <dense_layer.h>
 #include <mutex>
 #include <shared_mutex>
 #include <thread>
+#include <model.h>
 
 namespace noodle {
     using namespace std;
@@ -140,7 +141,8 @@ namespace noodle {
                 std::chrono::duration<float> diff = epoch_time_end - epoch_timer;
                 cout << "\rCompleting Epoch " << e << ". complete " <<
                      100 * ix / total
-                     << "% " << " estimated acc.: " << best_perf[1] << " last epoch duration: " << diff.count() << " s, lr: " << lr
+                     << "% " << " estimated acc.: " << best_perf[1] << " last epoch duration: " << diff.count()
+                     << " s, lr: " << lr
                      << flush;
                 if (((num_t) ix / (num_t) total) > 0.06) {
                     model_perf = evaluate(model, 0.15);
@@ -159,8 +161,8 @@ namespace noodle {
                     } else {
                         losing_streak--;
                         if (lr > lr_min) {
-                            lr/=1.02;// -= lr_step;
-                        }else{
+                            lr /= 1.02;// -= lr_step;
+                        } else {
                             //lr = lr_max;
                         }
                     }
