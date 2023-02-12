@@ -74,8 +74,8 @@ namespace noodle {
     };
 
     struct sigmoid_layer : public abstract_layer {
-        vec_t input = NULL_V();
-        vec_t output = NULL_V();
+        vec_t input = row_vector();
+        vec_t output = row_vector();
 
         sigmoid_layer() : abstract_layer("SIGMOID") {}
 
@@ -113,8 +113,8 @@ namespace noodle {
      * Can improve model accuracy but wont reduce it. There's probably another name for this somewhere.
      */
     struct low_sigmoid_layer : public abstract_layer {
-        vec_t input = NULL_V();
-        vec_t output = NULL_V();
+        vec_t input = row_vector();
+        vec_t output = row_vector();
         num_t flatness = 0.37;
 
         low_sigmoid_layer() : abstract_layer("LOW_SIGMOID") {}
@@ -149,8 +149,8 @@ namespace noodle {
 
     struct relu_layer : public abstract_layer {
 
-        vec_t input = NULL_V();
-        vec_t output = NULL_V();
+        vec_t input = row_vector();
+        vec_t output = row_vector();
         num_t leakiness = 1; // use factors > 1 i.e. 10, 100, 1000
 
         relu_layer(num_t leakiness = 1) : abstract_layer("LRELU") {
@@ -189,8 +189,8 @@ namespace noodle {
     };
 
     struct normalize_layer : public abstract_layer {
-        vec_t input = NULL_V();
-        vec_t output = NULL_V();
+        vec_t input = row_vector();
+        vec_t output = row_vector();
 
         normalize_layer() : abstract_layer("NORMALIZE") {
         }
@@ -218,8 +218,8 @@ namespace noodle {
     };
 
     struct dropout_layer : public abstract_layer {
-        vec_t input = NULL_V();
-        vec_t output = NULL_V();
+        vec_t input = row_vector();
+        vec_t output = row_vector();
         num_t ratio = 0.1;
         bool is_training = true;
         std::default_random_engine generator;
@@ -261,8 +261,8 @@ namespace noodle {
     };
 
     struct pepper_layer : public abstract_layer {
-        vec_t input = NULL_V();
-        vec_t output = NULL_V();
+        vec_t input = row_vector();
+        vec_t output = row_vector();
         num_t ratio = 1;
         bool is_training = true;
         std::default_random_engine generator;
@@ -308,8 +308,8 @@ namespace noodle {
     };
 
     struct soft_max_layer : public abstract_layer {
-        vec_t input = NULL_V();
-        vec_t output = NULL_V();
+        vec_t input = row_vector();
+        vec_t output = row_vector();
 
         soft_max_layer() : abstract_layer("SOFTMAX") {
         }

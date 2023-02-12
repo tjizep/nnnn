@@ -14,30 +14,31 @@
 namespace noodle {
     using namespace std;
     using namespace Eigen;
+    struct training_set {
+        vector<int> training_labels;
+        vector<noodle::vec_t> training_inputs ;
+        vector<noodle::vec_t> training_outputs ;
+        vector<int> test_labels ;
+        vector<noodle::vec_t> test_inputs;
+        int32_t data_size;
+    };
+
     typedef std::array<num_t, 2> LearningRate;
 
     class trainer {
     public:
     private:
         typedef vector<layer> VarLayersType;
-        vector<vec_t> training_inputs_;
-        vector<vec_t> training_outputs_;
-        vector<vec_t> test_inputs_;
-        vector<int> test_labels_;
+        training_set data;
         size_t mini_batch_size_ = 3;
         LearningRate learning_rate_ = {0.3, 0.01};
 
     public:
 
 
-        trainer(vector<vec_t> &training_inputs, vector<vec_t> &training_outputs,
-                vector<vec_t> &test_inputs, vector<int> &test_labels,
-                num_t mini_batch_size, std::array<num_t, 2> learning_rate) {
+        trainer(training_set &data, num_t mini_batch_size, std::array<num_t, 2> learning_rate) {
             auto prev = 0;
-            training_inputs_ = training_inputs;
-            training_outputs_ = training_outputs;
-            test_inputs_ = test_inputs;
-            test_labels_ = test_labels;
+            this->data = data;
             mini_batch_size_ = mini_batch_size;
             learning_rate_ = learning_rate;
         }
@@ -79,15 +80,15 @@ namespace noodle {
             cout << "Beginning var stochastic gradient descent" << endl;
             auto sgd_timer = std::chrono::high_resolution_clock::now();
             vector<int> indices;
-            for (uint32_t i = 0; i < training_inputs_.size(); i++) {
+            for (uint32_t i = 0; i < data.training_inputs.size(); i++) {
                 indices.push_back(i);
             }
-            std::uniform_int_distribution<size_t> dis(0, training_inputs_.size() - 1);
+            std::uniform_int_distribution<size_t> dis(0, data.training_inputs.size() - 1);
             const size_t max_batch_mirror_update = 2;
             size_t ix = 0;
             const num_t lr_min = std::min<num_t>(learning_rate_[0], learning_rate_[1]);
             const num_t lr_max = std::max<num_t>(learning_rate_[0], learning_rate_[1]);
-            size_t total = (training_inputs_.size() * epochs) / mini_batch_size_;
+            size_t total = (data.training_inputs.size() * epochs) / mini_batch_size_;
             num_t lr_step = (lr_max - lr_min) / epochs;
             num_t lr = learning_rate_[0];
 
@@ -100,15 +101,15 @@ namespace noodle {
                 auto epoch_timer = std::chrono::high_resolution_clock::now();
                 if (shards > 1) {
                     mutex mut;
-                    vector<thread> threads(shards);
-                    vector<VarLayers> tmod(shards);
+                    vector <thread > threads(shards);
+                    vector <VarLayers > tmod(shards);
                     for (auto &tm: tmod)
                         tm = model;
                     for (size_t t = 0; t < shards; ++t) {
                         threads[t] = thread([&](size_t at) {
                             size_t buffer = 0;
                             for (int batch_num = 0;
-                                 batch_num * mini_batch_size_ < training_inputs_.size(); batch_num++) {
+                                 batch_num * mini_batch_size_ < data.training_inputs.size(); batch_num++) {
                                 if (batch_num % shards == 0) {
                                     ++ix;
                                 }
@@ -132,7 +133,7 @@ namespace noodle {
                         t.join();
                     }
                 } else {
-                    for (int batch_num = 0; batch_num * mini_batch_size_ < training_inputs_.size(); batch_num++) {
+                    for (int batch_num = 0; batch_num * mini_batch_size_ < data.training_inputs.size(); batch_num++) {
                         update_mini_batch(indices, batch_num, lr, model);
                         ++ix;
                     }
@@ -229,12 +230,12 @@ namespace noodle {
         }
 
         static void
-        update_sample(const vector<vec_t> &training_inputs_, const vector<vec_t> &training_outputs_, size_t batch_index,
+        update_sample(const training_set &data, size_t batch_index,
                       num_t lr, VarLayers &model) {
 
             vec_t a0, target;
-            a0 = training_inputs_[batch_index];
-            target = training_outputs_[batch_index];
+            a0 = data.training_inputs[batch_index];
+            target = data.training_outputs[batch_index];
             update_sample(a0, target, batch_index, lr, model);
         }
 
@@ -271,12 +272,12 @@ namespace noodle {
             int batch_index = 0;
             var_start_batch(model);
             for (int b = batch_num * mini_batch_size_;
-                 b < ((batch_num * mini_batch_size_) + mini_batch_size_) && b < training_outputs_.size();
+                 b < ((batch_num * mini_batch_size_) + mini_batch_size_) && b < data.training_outputs.size();
                  b++) {
                 batch_index = indices[b];
                 vec_t a0, target;
-                a0 = training_inputs_[batch_index];
-                target = training_outputs_[batch_index];
+                a0 = data.training_inputs[batch_index];
+                target = data.training_outputs[batch_index];
                 update_sample(a0, target, batch_index, lr, model);
 
             }
@@ -290,20 +291,20 @@ namespace noodle {
             vec_t a0, target;
             var_start_batch(model);
             for (int b = batch_num * mini_batch_size_;
-                 b < ((batch_num * mini_batch_size_) + mini_batch_size_) && b < training_outputs_.size();
+                 b < ((batch_num * mini_batch_size_) + mini_batch_size_) && b < data.training_outputs.size();
                  b++) {
                 batch_index = indices[b];
                 vec_t a0, target;
-                a0 = training_inputs_[batch_index];
-                target = training_outputs_[batch_index];
+                a0 = data.training_inputs[batch_index];
+                target = data.training_outputs[batch_index];
                 update_sample(a0, target, batch_index, lr, model);
             }
             var_end_batch(model);
         }
 
         void print_training_data() {
-            cout << "Training set in_size " << training_inputs_.size() << " ";
-            cout << "Testing set in_size " << test_labels_.size() << endl;
+            cout << "Training set in_size " << data.training_inputs.size() << " ";
+            cout << "Testing set in_size " << data.test_labels.size() << endl;
         }
 
         void print_accuracy(std::string pref, array<num_t, 2> result) {
@@ -329,32 +330,32 @@ namespace noodle {
             size_t output;
             size_t train_output;
             var_set_training(model, false);
-            std::uniform_int_distribution<size_t> dis_t(0, training_outputs_.size() - 1);
-            for (uint32_t i = 0; i < training_outputs_.size() * fraction; i++) {
+            std::uniform_int_distribution<size_t> dis_t(0, data.training_outputs.size() - 1);
+            for (uint32_t i = 0; i < data.training_outputs.size() * fraction; i++) {
                 size_t o_index = dis_t(g);
-                var_feed_forward(training_inputs_[o_index], model);
+                var_feed_forward(data.training_inputs[o_index], model);
                 vec_t vi = var_get_input(model.back());
                 vi.maxCoeff(&output);
-                training_outputs_[o_index].maxCoeff(&train_output);
+                data.training_outputs[o_index].maxCoeff(&train_output);
                 if (output == train_output) {
                     num_correct++;
                 }
             }
 
-            std::uniform_int_distribution<size_t> dis(0, test_inputs_.size() - 1);
+            std::uniform_int_distribution<size_t> dis(0, data.test_inputs.size() - 1);
 
-            result[0] = (num_t) num_correct / (fraction * training_inputs_.size());
+            result[0] = (num_t) num_correct / (fraction * data.training_inputs.size());
             num_correct = 0;
-            for (uint32_t i = 0; i < test_labels_.size() * fraction; i++) {
+            for (uint32_t i = 0; i < data.test_labels.size() * fraction; i++) {
                 size_t sample_index = dis(g);
-                var_feed_forward(test_inputs_[sample_index], model);
+                var_feed_forward(data.test_inputs[sample_index], model);
                 var_get_input(model.back()).maxCoeff(&output);
-                if (output == test_labels_[sample_index]) {
+                if (output == data.test_labels[sample_index]) {
                     num_correct++;
                 }
             }
 
-            result[1] = (num_t) num_correct / (fraction * test_labels_.size());
+            result[1] = (num_t) num_correct / (fraction * data.test_labels.size());
 
             var_set_training(model, true);
             return result;

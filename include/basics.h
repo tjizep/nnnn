@@ -24,9 +24,9 @@ namespace noodle {
     typedef Matrix<num_t, Dynamic, Dynamic, RowMajor> mat_t;//MatrixXf
     typedef SparseMatrix<num_t> sparse_mat_t;
 
-    static inline vec_t NULL_V() { return vec_t::Constant(0, 0); }
+    static inline vec_t row_vector() { return vec_t::Constant(0, 0); }
 
-    static inline mat_t NULL_M() { return mat_t::Constant(0, 0, 0); }
+    static inline mat_t matrix() { return mat_t::Constant(0, 0, 0); }
 
     static inline sparse_mat_t NULL_SM() { return sparse_mat_t(0, 0); }
 

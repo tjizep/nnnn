@@ -24,22 +24,24 @@ namespace noodle {
         uint32_t index = 0;
         block_sparsity sparseness;
         num_t momentum = 0;
-        vec_t biases = NULL_V();
-        mat_t weights = NULL_M();
+        vec_t biases = row_vector();
+        mat_t weights = matrix();
 
-        mat_t prev_weights_delta = NULL_M();
-        vec_t prev_biases_delta = NULL_V();
+        mat_t prev_weights_delta = matrix();
+        vec_t prev_biases_delta = row_vector();
 
-        vec_t input = NULL_V();
-        vec_t output = NULL_V();
+        vec_t input = row_vector();
+        vec_t output = row_vector();
         /// temp data during training
-        vec_t input_error = NULL_V();
-        mat_t mini_batch_update_weights = NULL_M();
-        vec_t mini_batch_update_biases = NULL_V();
+        vec_t input_error = row_vector();
+        mat_t mini_batch_update_weights = matrix();
+        vec_t mini_batch_update_biases = row_vector();
 
         fc_layer(uint32_t in_size, uint32_t out_size, num_t sparseness = 0, num_t sparsity_greed = 2.5, num_t momentum = 0) : abstract_layer(
                 "FULLY CONNECTED") {
-
+            cout << "name " << name << endl;
+            cout << "in_size " << in_size << endl;
+            cout << "out_size " << out_size << endl;
             this->in_size = in_size;
             this->out_size = out_size;
             this->momentum = momentum;
@@ -116,8 +118,8 @@ namespace noodle {
                 prev_weights_delta = mini_batch_update_weights;
                 prev_biases_delta = mini_batch_update_biases;
             }
-            mini_batch_update_weights = NULL_M();
-            mini_batch_update_biases = NULL_V();
+            mini_batch_update_weights = matrix();
+            mini_batch_update_biases = row_vector();
         }
 
         /***
