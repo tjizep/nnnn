@@ -157,7 +157,8 @@ namespace noodle{
             size_t threads = def["threads"];
             auto lr = def["learning_rates"];
             auto save_schedule = def["save_schedule"];// unused
-            array<noodle::num_t,2>  learning_rate = {0.01, 0.0001};
+            print_dbg("learning rates",(num_t)lr[0],(num_t)lr[1]);
+            array<noodle::num_t,2>  learning_rate = {lr[0], lr[1]};
             noodle::trainer n(ts, mini_batch_size, learning_rate);
 
             n.stochastic_gradient_descent(physical, epochs, threads, 75);
