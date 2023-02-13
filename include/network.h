@@ -77,7 +77,7 @@ namespace noodle {
             std::random_device rd;
             std::mt19937 g(rd());
             var_initialize(model);
-            cout << "Beginning var stochastic gradient descent" << endl;
+            print_inf("Beginning var stochastic gradient descent");
             auto sgd_timer = std::chrono::high_resolution_clock::now();
             vector<int> indices;
             for (uint32_t i = 0; i < data.training_inputs.size(); i++) {
@@ -140,11 +140,10 @@ namespace noodle {
                 }
                 auto epoch_time_end = std::chrono::high_resolution_clock::now();
                 std::chrono::duration<float> diff = epoch_time_end - epoch_timer;
-                cout << "\rCompleting Epoch " << e << ". complete " <<
-                     100 * ix / total
-                     << "% " << " estimated acc.: " << best_perf[1] << " last epoch duration: " << diff.count()
-                     << " s, lr: " << lr
-                     << flush;
+                print_inf("Completing Epoch",e,". complete ",
+                     100 * ix / total, "%");
+                print_inf("estimated acc.: ",best_perf[1]);
+                print_inf("last epoch duration:",diff.count(),"s, lr:",lr);
                 if (((num_t) ix / (num_t) total) > 0.06) {
                     model_perf = evaluate(model, 0.15);
                     if (model_perf[1] > best_perf[1]) {
@@ -170,15 +169,15 @@ namespace noodle {
                 }
 
             }
-            cout << endl;
+
             model_perf = evaluate(model, 1);
             if (model_perf[1] > best_perf[1]) {
                 best_model = model;
                 best_perf = model_perf;
                 best_epoch = epochs;
             }
-            cout << "Best Epoch " << best_epoch;
-            print_accuracy(",", best_perf);
+            print_inf("Best Epoch",best_epoch);
+            print_accuracy(best_perf);
 
             num_t total_vars = 0;
             num_t total_zeroes = 0;
@@ -186,12 +185,12 @@ namespace noodle {
                 total_zeroes += var_get_weights_zeroes(l);
                 total_vars += var_get_weights_size(l);
             }
-            cout << "model sparsity " << total_zeroes / total_vars << " size: " << total_vars << endl;
+            print_inf("model sparsity",total_zeroes / total_vars,"size:",total_vars);
 
             auto epoch_time_end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<float> diff = epoch_time_end - sgd_timer;
 
-            cout << "Finished stochastic gradient descent. Taking " << diff.count() << " seconds." << endl;
+            print_inf("Finished stochastic gradient descent. Taking",diff.count(),"seconds.");
             return best_model;
         }
 
@@ -244,7 +243,7 @@ namespace noodle {
             auto idest = dest.begin();
             for (; isource != source.end() && idest != dest.end(); ++isource, ++idest) {
                 if (!var_layer_update_bp(*idest, *isource)) {
-                    cerr << "layer type not found" << endl;
+                    print_err("layer type not found");
                 }
             }
         }
@@ -254,7 +253,7 @@ namespace noodle {
             auto idest = dest.begin();
             for (; isource != source.end() && idest != dest.end(); ++isource, ++idest) {
                 if (!var_layer_raw_copy(*idest, *isource)) {
-                    cerr << "layer type not found" << endl;
+                    print_err("layer type not found");
                 }
             }
         }
@@ -303,14 +302,14 @@ namespace noodle {
         }
 
         void print_training_data() {
-            cout << "Training set in_size " << data.training_inputs.size() << " ";
-            cout << "Testing set in_size " << data.test_labels.size() << endl;
+            print_inf("Training set in_size", data.training_inputs.size(),
+                      "Testing set in_size", data.test_labels.size());
         }
 
-        void print_accuracy(std::string pref, array<num_t, 2> result) {
+        void print_accuracy(array<num_t, 2> result) {
 
-            cout << pref << " Accuracy: Train = " << result[0] * 100 << " %, ";
-            cout << "Validation = " << result[1] * 100 << " %" << endl;
+            print_inf("Accuracy: Train =", result[0] * 100,"%, ",
+            "Validation =", result[1] * 100, "%");
         }
         /**
          * evaluate model stochastically
@@ -370,10 +369,10 @@ namespace noodle {
                     file << l.weights << endl << endl;
                 }
 #endif
-                cout << "Successfully saved to " << filepath << "." << endl;
+                print_inf("Successfully saved to ", filepath, ".");
                 return 0;
             }
-            cout << "Failed to save to " << filepath << "." << endl;
+            print_inf("Failed to save to", filepath, ".");
             return 1;
         }
 

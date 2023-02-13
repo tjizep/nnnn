@@ -6,13 +6,13 @@
 
 int main(int argc, char *argv[]) {
     using namespace std;
-
-    noodle::load_model_from_json("../models/mnist_fc.json");
 #ifdef EIGEN_VECTORIZE
-    cout << "'Eigen' Vectorization is enabled" << endl;
+    print_inf("'Eigen' Vectorization is enabled");
 #else
-    cout << "'Eigen' Vectorization is disabled" << endl;
+    print_inf("'Eigen' Vectorization is disabled");
 #endif
+    noodle::load_model_from_json("../models/mnist_fc.json");
+
 
     return 0;
 }

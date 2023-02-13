@@ -39,9 +39,9 @@ namespace noodle {
 
         fc_layer(uint32_t in_size, uint32_t out_size, num_t sparseness = 0, num_t sparsity_greed = 2.5, num_t momentum = 0) : abstract_layer(
                 "FULLY CONNECTED") {
-            cout << "name " << name << endl;
-            cout << "in_size " << in_size << endl;
-            cout << "out_size " << out_size << endl;
+            print_inf("name", name);
+            print_inf("in_size",in_size);
+            print_inf("out_size",out_size);
             this->in_size = in_size;
             this->out_size = out_size;
             this->momentum = momentum;

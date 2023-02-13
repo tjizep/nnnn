@@ -18,7 +18,7 @@ namespace noodle{
     bool contains(json& j, std::vector<string> stuff){
         for(auto s: stuff){
             if(!j.contains(s)) {
-                cerr << "expected '" << s << "'" << endl;
+                print_err("expected element '", s, "' not found");
                 return false;
             }
         }
@@ -66,19 +66,23 @@ namespace noodle{
         auto layers = model_def["layers"];
 
         if(optimizer_def.empty()){
+            print_err("'optimizer'.'def' is empty");
             return;
         }
 
         if(layers.empty()){
+            print_err("'layers' element is empty");
             return;
         }
 
         if(model_def.empty()){
+            print_err("'model'.'def' is empty");
             return;
         }
 
         auto data = model_def["data"];
         if(data.empty()){
+            print_err("'data' element is empty");
             return;
         }
         if(!contains(data,{"kind", "def"}))
@@ -137,15 +141,17 @@ namespace noodle{
                 physical.push_back(noodle::soft_max_layer{});
             }
         }
-        cout << "physical.size() " << physical.size() << endl;
+        print_dbg("physical.size()",physical.size());
         for(auto o : optimizer_def){
             if(!contains(o, {"kind","def"}) )
                 return;
             json kind = o["kind"];
             json def = o["def"];
-            if(!contains(def, {"epochs", "mini_batch_size", "learning_rates", "threads"}))
+            if(!contains(def, {"epochs", "mini_batch_size", "learning_rates", "threads"})){
                 return;
-            cout << "OK optimizer" << endl;
+            }
+
+            print_dbg("OK optimizer");
             num_t mini_batch_size = def["mini_batch_size"];
             size_t epochs = def["epochs"];
             size_t threads = def["threads"];

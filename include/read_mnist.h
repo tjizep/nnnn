@@ -26,12 +26,12 @@ namespace mnist {
         char label;
         vector<int> labels;
         if (file.is_open()) {
-            cout << "Reading label file: " << path << endl;
+            print_inf("Reading label file:", path);
 
             file.read(reinterpret_cast<char *>(&magic), 4);
             magic = swap_endian(magic);
             if (magic != 2049) {
-                cout << "Incorrect magic number: " << magic << "(Should be 2049)" << endl;
+                print_err("unexpected magic number:", magic, "(expecting 2049)");
                 return labels;
             }
 
@@ -43,7 +43,7 @@ namespace mnist {
                 labels.push_back(label);
             }
         } else {
-            cerr << "could not read label file " << path << endl;
+            print_err("could not read label file", path);
         }
         return labels;
     }
@@ -59,12 +59,12 @@ namespace mnist {
         vector<vec_t> images;
         unordered_map<uint32_t, uint32_t> log_hist;
         if (file.is_open()) {
-            cout << "Reading image file: " << path << endl;
+            print_inf("Reading image file:", path);
 
             file.read(reinterpret_cast<char *>(&magic), 4);
             magic = swap_endian(magic);
             if (magic != 2051) {
-                cout << "Incorrect magic number: " << magic << "(Should be 2051)" << endl;
+                print_err("surprising magic number:", magic, "(expexted 2051)");
                 return images;
             }
 
@@ -75,8 +75,8 @@ namespace mnist {
             file.read(reinterpret_cast<char *>(&cols), 4);
             cols = swap_endian(cols);
 
-            cout << "Image Count: " << image_count << endl;
-            cout << "Image Size: " << rows << " x " << cols << endl;
+            print_inf("Image Count:", image_count);
+            print_inf("Image Size:", rows, "x", cols);
 
             pixels.resize(rows * cols);
             size_t at = 0;
@@ -119,11 +119,11 @@ namespace mnist {
                 images.push_back(image);
             }
             for (auto p: log_hist) {
-                cout << p.first << " " << p.second << endl;
+                print_inf(p.first, p.second);
             }
-            cout << max_at << endl;
+            print_inf(max_at);
         } else {
-            cerr << "Failure reading image file: " << path << endl;
+            print_err("Failure reading image file:", path);
         }
         return images;
     }

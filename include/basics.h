@@ -1,5 +1,6 @@
 #pragma once
 //#define EIGEN_DONT_VECTORIZE
+#include <logging/console.h>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -11,6 +12,7 @@
 #include <string.h>
 #include <fstream>
 #include <random>
+
 //#include <experimental/simd>
 
 namespace noodle {
