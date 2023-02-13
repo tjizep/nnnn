@@ -9,6 +9,9 @@
 #include <string>
 #include <vector>
 #include <variant>
+#include <iostream>
+#include <iomanip>
+#include <ctime>
 
 namespace console {
     using namespace std;
@@ -19,7 +22,13 @@ namespace console {
         return true;
     }
     static inline string current_time(){
-        return "__-__-__ __:__:__";
+        std::time_t t = std::time(nullptr);
+        std::tm tm = *std::localtime(&t);
+        std::stringstream buffer;
+
+        buffer << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+        //return "__-__-__ __:__:__";
+        return buffer.str();
     }
     typedef std::variant<const std::string, int64_t ,size_t, unsigned int, int, long, double, float> _LogValue;
     /**
