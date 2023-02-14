@@ -1,3 +1,9 @@
 [submodule "repo/json"]
 	path = repo/json
 	url = https://github.com/nlohmann/json.git
+[submodule "repo/eigen"]
+	path = repo/eigen
+	url = https://gitlab.com/libeigen/eigen.git
+[submodule "repo/sse2neon"]
+	path = repo/sse2neon
+	url = https://github.com/DLTcollab/sse2neon.git

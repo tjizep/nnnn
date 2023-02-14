@@ -12,7 +12,7 @@
 #include <string.h>
 #include <fstream>
 #include <random>
-
+#include <cassert>
 //#include <experimental/simd>
 
 namespace noodle {
