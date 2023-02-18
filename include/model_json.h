@@ -118,6 +118,22 @@ namespace noodle{
                 leakiness = l_def["leakiness"];
             layers.push_back(noodle::relu_layer{leakiness});
         }
+
+        if(l_kind == "TANH"){
+            layers.push_back(noodle::tanh_layer{});
+        }
+
+        if(l_kind == "SIGMOID"){
+            layers.push_back(noodle::sigmoid_layer{});
+        }
+
+        if(l_kind == "FLAT_SIGMOID"){
+            num_t flatness = 0.35;
+            if(l_def.contains("flatness"))
+                flatness = l_def["flatness"];
+            layers.push_back(noodle::low_sigmoid_layer{flatness});
+        }
+
         if(l_kind == "DROPOUT"){
 
             num_t rate = 0.1;

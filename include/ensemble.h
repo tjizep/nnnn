@@ -22,9 +22,6 @@ namespace noodle {
         LayersForward layers;
         ensemble(const LayersForward &layers,uint32_t in_size, uint32_t out_size) : abstract_layer(
                 "ENSEMBLE") {
-            print_inf("name", name);
-            print_inf("in_size", in_size);
-            print_inf("out_size", out_size);
             this->in_size = in_size;
             this->out_size = out_size;
             this->layers = layers;
@@ -69,7 +66,6 @@ namespace noodle {
 
         void raw_copy_from(const ensemble &fc) {
             // *this = fc;
-
 
         }
 

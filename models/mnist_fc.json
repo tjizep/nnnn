@@ -5,7 +5,7 @@
     "data": {
       "kind": "mnist",
       "def": {
-        "scale": 600,
+        "scale": 180,
         "path": "../data/mnist/",
         "test_label_path": "t10k-labels-idx1-ubyte",
         "train_label_path": "train-labels-idx1-ubyte",
@@ -16,7 +16,7 @@
     "layers": [
       { "name":"#010",
         "kind": "SPARSE_FC",
-        "def": {"inputs": 600,"outputs": 400, "sparsity": 0.77}
+        "def": {"inputs": 180,"outputs": 100, "sparsity": 0.73}
       },
       {
         "name": "#010.1",
@@ -25,7 +25,7 @@
       },
       { "name":"#020",
         "kind": "SPARSE_FC",
-        "def": {"inputs": 400, "outputs": 50,"sparsity": 0}
+        "def": {"inputs": 100, "outputs": 50,"sparsity": 0}
       },
       {
         "name": "#020.1",
@@ -61,8 +61,8 @@
         "kind": "SGD",
         "def": {
           "epochs": 17,
-          "mini_batch_size": 24,
-          "threads": 4,
+          "mini_batch_size": 32,
+          "threads": 8,
           "learning_rates": [0.009, 0.0001],
           "save_schedule": [0.7,0.8,0.95,0.98]
         }

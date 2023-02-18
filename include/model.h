@@ -165,6 +165,7 @@ namespace noodle {
             model_member<fc_layer>,
             model_member<sigmoid_layer>,
             model_member<low_sigmoid_layer>,
+            model_member<tanh_layer>,
             model_member<relu_layer>,
             model_member<soft_max_layer>,
             model_member<normalize_layer>,
