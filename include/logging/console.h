@@ -16,7 +16,7 @@
 namespace console {
     using namespace std;
     static inline bool debugging(){
-        return false;
+        return true;
     }
     static inline bool info(){
         return true;
@@ -31,6 +31,12 @@ namespace console {
         return buffer.str();
     }
     typedef std::variant<const std::string, int64_t ,size_t, unsigned int, int, long, double, float> _LogValue;
+    static bool inline is_string(const _LogValue& val){
+        if(const std::string* s = std::get_if<const std::string>(&val)){
+            return true;
+        }
+        return false;
+    }
     /**
      * converts the variant type _LogValue to a string
      * if a new type was added to _LogValue without changing the function <unknown> is returned
@@ -111,7 +117,7 @@ namespace console {
 #define unlikely(x) x
 #endif
 // safe logging methods based on std::variant
-#define print_err(...)             do {  if (true) (console::println({console::cat({"[ERR][",console::current_time(),"][",__FUNCTION__,"]"}), ##__VA_ARGS__ }, " ")); } while(0)
+#define print_err(...)             do {  if (true) (console::errorln({console::cat({"[ERR][",console::current_time(),"][",__FUNCTION__,"]"}), ##__VA_ARGS__ }, " ")); } while(0)
 #define DBG_PRINT
 #ifdef DBG_PRINT
 #define print_dbg(...)             do {  if (unlikely(console::debugging())) (console::println({console::cat({"[DBG][",console::current_time(),"][",__PRETTY_FUNCTION__,"]"}), ##__VA_ARGS__ }, " ")); } while(0)

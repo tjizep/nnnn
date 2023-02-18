@@ -13,7 +13,7 @@
 #include <fstream>
 #include <random>
 #include <cassert>
-//#include <experimental/simd>
+
 
 namespace noodle {
     using namespace std;

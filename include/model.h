@@ -8,6 +8,7 @@
 #include <basics.h>
 #include <activations.h>
 #include <dense_layer.h>
+#include <ensemble.h>
 
 namespace noodle {
     using namespace std;
@@ -124,7 +125,7 @@ namespace noodle {
         }
 
         num_t get_weights_size() const {
-            if constexpr (has_member(V, get_weights_sparseness())) {
+            if constexpr (has_member(V, get_weights())) {
                 return impl.get_weights().size();
             }
             return 0;
@@ -158,6 +159,7 @@ namespace noodle {
             return impl.name;
         }
     };
+    class layer_holder;
 
     typedef std::variant<
             model_member<fc_layer>,
@@ -167,9 +169,18 @@ namespace noodle {
             model_member<soft_max_layer>,
             model_member<normalize_layer>,
             model_member<dropout_layer>,
-            model_member<pepper_layer>> layer;
+            model_member<pepper_layer>,
+            model_member<ensemble<layer_holder>>> layer;
 
     typedef std::vector<layer> VarLayers;
+    class layer_holder {
+    public:
+        VarLayers model;
+
+        vec_t feed_forward(const vec_t &a0);
+        vec_t back_prop(const vec_t &error_, num_t lr);
+    };
+
 
     void var_initialize(VarLayers &model) {
         uint32_t d = 0, ix = 0;
@@ -301,5 +312,32 @@ namespace noodle {
             return arg.get_name();
         }, v);
     }
+
+    vec_t layer_holder::feed_forward(const vec_t &a0) {
+        vec_t activation = a0;
+        int at = 0;
+        print_dbg("var input activations",activation.norm(),"@",0);
+        for (auto &l: model) {
+            activation = var_forward(l, activation);
+            print_dbg(at,var_get_name (l),"activation val",activation.norm(),activation.sum());
+            ++at;
+        }
+        return activation;
+    }
+    vec_t layer_holder::back_prop(const vec_t &error_, num_t lr) {
+        vec_t error = error_;
+        int lix = model.size() - 1;
+        print_dbg("err.",error.norm());
+        for (auto cl = model.rbegin(); cl != model.rend(); ++cl) {
+            error = var_layer_bp(*cl, error, lr);
+            print_dbg(lix,var_get_name (*cl),"err val",error.norm(),error.sum());
+            //assert(!has_nan(error));
+            //assert(!has_inf(error));
+            --lix;
+        }
+        return error;
+    }
+
+
 }
 #endif //NNNN_MODEL_H

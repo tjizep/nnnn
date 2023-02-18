@@ -239,7 +239,7 @@ namespace noodle {
         vec_t forward(const vec_t &io) {
             input = io;
             output = input;
-            if (is_training) {
+            if (is_training && ratio > 0) {
                 std::binomial_distribution<int> distribution(1, 1 - ratio);
                 output = output.unaryExpr([&](num_t x) -> num_t {
                     auto c = distribution(generator);

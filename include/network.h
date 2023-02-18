@@ -10,6 +10,7 @@
 #include <shared_mutex>
 #include <thread>
 #include <model.h>
+#include <ensemble.h>
 
 namespace noodle {
     using namespace std;
@@ -122,8 +123,8 @@ namespace noodle {
                                     update_layers(model, tmod[at]);
                                     var_update_weights(model,
                                                        (num_t) ix / (num_t) total); // accumulate all the errors
-                                    //tmod[at] = model;
-                                    raw_copy(tmod[at], model);
+                                    tmod[at] = model;
+                                    //raw_copy(tmod[at], model);
 
                                 }
                             }

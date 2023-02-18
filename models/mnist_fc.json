@@ -5,7 +5,7 @@
     "data": {
       "kind": "mnist",
       "def": {
-        "scale": 180,
+        "scale": 600,
         "path": "../data/mnist/",
         "test_label_path": "t10k-labels-idx1-ubyte",
         "train_label_path": "train-labels-idx1-ubyte",
@@ -16,7 +16,7 @@
     "layers": [
       { "name":"#010",
         "kind": "SPARSE_FC",
-        "def": {"inputs": 180,"outputs": 120, "sparsity": 0.7}
+        "def": {"inputs": 600,"outputs": 400, "sparsity": 0.77}
       },
       {
         "name": "#010.1",
@@ -25,7 +25,7 @@
       },
       { "name":"#020",
         "kind": "SPARSE_FC",
-        "def": {"inputs": 120, "outputs": 50,"sparsity": 0.6}
+        "def": {"inputs": 400, "outputs": 50,"sparsity": 0}
       },
       {
         "name": "#020.1",
@@ -34,16 +34,21 @@
       },
       { "name":"#021",
         "kind": "SPARSE_FC",
-        "def": {"inputs": 50, "outputs": 50,"sparsity": 0}
+        "def": {"inputs": 50, "outputs": 25,"sparsity": 0}
       },
       {
         "name": "#021.1",
         "kind": "LRELU",
         "def": {"leakiness": 50}
       },
+      {
+        "name": "#010.01",
+        "kind": "DROPOUT",
+        "def": {"rate": 0}
+      },
       { "name":"#030",
         "kind": "SPARSE_FC",
-        "def": {"inputs": 50,"outputs": 10,"sparsity": 0}
+        "def": {"inputs": 25,"outputs": 10,"sparsity": 0}
       },
       {
         "name": "#030.1",
@@ -55,7 +60,7 @@
       "mnist_good": {
         "kind": "SGD",
         "def": {
-          "epochs": 12,
+          "epochs": 17,
           "mini_batch_size": 24,
           "threads": 4,
           "learning_rates": [0.009, 0.0001],

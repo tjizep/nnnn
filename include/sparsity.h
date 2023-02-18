@@ -195,7 +195,7 @@ namespace noodle {
                     if (b_avg < high_water) {//|| bl.row < weights.rows()/8
                         block.array() = 0;
                         zeroed++;
-                        num_t current_sparseness = ((num_t) zeroed + zero_blocks.size()) * block_size / values;
+                        num_t current_sparseness = ((num_t) zeroed + (num_t)zero_blocks.size()) * (num_t)block_size / values;
                         // mTODO: discover when 15 should change
                         if (current_sparseness > sparseness || zeroed > total_blocks / 40.0) {
                             create_block_mask(weights);

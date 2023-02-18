@@ -7,3 +7,6 @@
 [submodule "repo/sse2neon"]
 	path = repo/sse2neon
 	url = https://github.com/DLTcollab/sse2neon.git
+[submodule "repo/recursive-variant"]
+	path = repo/recursive-variant
+	url = https://github.com/codeinred/recursive-variant.git

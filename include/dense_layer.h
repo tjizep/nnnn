@@ -9,10 +9,6 @@
 
 #include <sparsity.h>
 #include <activations.h>
-#include <optimizers.h>
-#include <type_traits>
-#include <variant>
-#include <type_traits>
 
 namespace noodle {
     using namespace std;
