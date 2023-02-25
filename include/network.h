@@ -11,6 +11,7 @@
 #include <thread>
 #include <model.h>
 #include <ensemble.h>
+#include <graph.h>
 
 namespace noodle {
     using namespace std;
@@ -56,6 +57,29 @@ namespace noodle {
             return activation;
         }
 
+        static vec_t var_feed_forward(vec_t &a0, graph &model) {
+            vec_t activation = a0;
+            int at = 0;
+            graph::forward_selector fwrd = model.first();
+            while (fwrd.ok(model)) {
+                activation = var_forward(fwrd.resolve(model).operation, activation);
+                //cout << at << " " << var_get_name (l) << " activation val " << activation.norm() << " " << activation.sum() <<endl;
+                ++at;
+                fwrd.next(model);
+            }
+            return activation;
+        }
+
+        static inline void var_bp(const vec_t &error_, num_t lr, graph &model) {
+            vec_t error = error_;
+            graph::reverse_selector bw = model.last();
+            while(bw.ok(model)){
+                error = var_layer_bp(bw.resolve(model).operation, error, lr);
+
+                bw.next(model);
+            }
+        }
+
         static inline void var_bp(const vec_t &error_, num_t lr, VarLayers &model) {
             vec_t error = error_;
             int lix = model.size() - 1;
@@ -68,10 +92,10 @@ namespace noodle {
                 --lix;
             }
         }
-
-        VarLayers
-        stochastic_gradient_descent(VarLayers &model, uint32_t epochs, size_t shards = 1, num_t max_streak = 3) {
-            VarLayers best_model;
+        template<typename ModelType>
+        ModelType
+        stochastic_gradient_descent(ModelType &model, uint32_t epochs, size_t shards = 1, num_t max_streak = 3) {
+            ModelType best_model;
             array<num_t, 2> model_perf, best_perf;
             size_t best_epoch = 0;
             bool save_best = true;
@@ -103,7 +127,7 @@ namespace noodle {
                 if (shards > 1) {
                     mutex mut;
                     vector <thread > threads(shards);
-                    vector <VarLayers > tmod(shards);
+                    vector <ModelType > tmod(shards);
                     for (auto &tm: tmod)
                         tm = model;
                     for (size_t t = 0; t < shards; ++t) {
@@ -182,9 +206,9 @@ namespace noodle {
 
             num_t total_vars = 0;
             num_t total_zeroes = 0;
-            for (auto &l: best_model) {
-                total_zeroes += var_get_weights_zeroes(l);
-                total_vars += var_get_weights_size(l);
+            for (auto &l: get_iterable(best_model)) {
+                total_zeroes += var_get_weights_zeroes(get_layer(l));
+                total_vars += var_get_weights_size(get_layer(l));
             }
             print_inf("model sparsity",total_zeroes / total_vars,"size:",total_vars);
 
@@ -228,6 +252,17 @@ namespace noodle {
             var_bp(error, lr, model);
             var_end_sample(model);
         }
+        static void
+        update_sample(const vec_t &a0_, const vec_t &target_, size_t batch_index, num_t lr, graph &model) {
+            model.start_sample();
+            vec_t a0 = a0_, target = target_;
+            vec_t result = var_feed_forward(a0, model);
+
+            vec_t error = loss_prime(target, result);
+
+            var_bp(error, lr, model);
+            model.end_sample();
+        }
 
         static void
         update_sample(const training_set &data, size_t batch_index,
@@ -247,6 +282,9 @@ namespace noodle {
                     print_err("layer type not found");
                 }
             }
+        }
+        void update_layers(graph &dest, const graph &source) {
+            source.update_layers(dest);
         }
 
         void raw_copy(VarLayers &dest, const VarLayers &source) {
@@ -268,7 +306,8 @@ namespace noodle {
          * @param lr learnin' rate
          * @param model the model that provides inference and back-prop
          */
-        void update_mini_batch(vector<int> &indices, int batch_num, num_t lr, VarLayers &model) {
+         template<typename ModelType>
+        void update_mini_batch(vector<int> &indices, int batch_num, num_t lr, ModelType &model) {
             int batch_index = 0;
             var_start_batch(model);
             for (int b = batch_num * mini_batch_size_;
@@ -286,7 +325,8 @@ namespace noodle {
 
         }
 
-        void update_mini_batch_single(vector<int> &indices, int batch_num, num_t lr, VarLayers &model) {
+        template<typename ModelType>
+        void update_mini_batch_single(vector<int> &indices, int batch_num, num_t lr, ModelType &model) {
             int batch_index = 0;
             vec_t a0, target;
             var_start_batch(model);
@@ -319,7 +359,8 @@ namespace noodle {
          * @return { test accuracy, training accuracy }
          */
         // stochastic evaluation
-        array<num_t, 2> evaluate(VarLayers &model, num_t fraction_ = 1) {
+        template<typename ModelType>
+        array<num_t, 2> evaluate(ModelType &model, num_t fraction_ = 1) {
             num_t fraction = abs(fraction_);
             if (fraction > 2) fraction = 1;
             std::random_device rd;
@@ -333,8 +374,8 @@ namespace noodle {
             std::uniform_int_distribution<size_t> dis_t(0, data.training_outputs.size() - 1);
             for (uint32_t i = 0; i < data.training_outputs.size() * fraction; i++) {
                 size_t o_index = dis_t(g);
-                var_feed_forward(data.training_inputs[o_index], model);
-                vec_t vi = var_get_input(model.back());
+                vec_t vi = var_feed_forward(data.training_inputs[o_index], model);
+                //vec_t vi = var_get_input(get_layer(model.back()));
                 vi.maxCoeff(&output);
                 data.training_outputs[o_index].maxCoeff(&train_output);
                 if (output == train_output) {
@@ -348,8 +389,8 @@ namespace noodle {
             num_correct = 0;
             for (uint32_t i = 0; i < data.test_labels.size() * fraction; i++) {
                 size_t sample_index = dis(g);
-                var_feed_forward(data.test_inputs[sample_index], model);
-                var_get_input(model.back()).maxCoeff(&output);
+                vec_t back = var_feed_forward(data.test_inputs[sample_index], model);
+                back.maxCoeff(&output);
                 if (output == data.test_labels[sample_index]) {
                     num_correct++;
                 }
@@ -360,23 +401,6 @@ namespace noodle {
             var_set_training(model, true);
             return result;
         }
-
-        int save_weights_and_biases(string filepath) {
-            std::ofstream file(filepath);
-            if (file.is_open()) {
-#if 0
-                for(auto& l : layers){
-                    file << l.biases << endl << endl;
-                    file << l.weights << endl << endl;
-                }
-#endif
-                print_inf("Successfully saved to ", filepath, ".");
-                return 0;
-            }
-            print_inf("Failed to save to", filepath, ".");
-            return 1;
-        }
-
     };
 
 }

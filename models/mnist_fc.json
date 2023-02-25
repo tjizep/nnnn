@@ -4,6 +4,9 @@
     "type": "classification",
     "data": {
       "kind": "mnist",
+      "name" : "D001",
+      "source": [],
+      "outputs": 180,
       "def": {
         "scale": 180,
         "path": "../data/mnist/",
@@ -14,45 +17,58 @@
       }
     },
     "layers": [
-      { "name":"#010",
+      { "name":"001",
         "kind": "SPARSE_FC",
-        "def": {"inputs": 180,"outputs": 100, "sparsity": 0.73}
+        "source": "D001",
+        "outputs": 140,
+        "def": {"sparsity": 0.63}
       },
       {
-        "name": "#010.1",
+        "name": "002",
         "kind": "LRELU",
+        "source": "001",
         "def": {"leakiness": 50}
       },
-      { "name":"#020",
+      { "name":"003",
         "kind": "SPARSE_FC",
-        "def": {"inputs": 100, "outputs": 50,"sparsity": 0}
+        "source": "002",
+        "outputs": 70,
+        "def": {"sparsity": 0}
       },
       {
-        "name": "#020.1",
+        "name": "004",
         "kind": "LRELU",
+        "source": "003",
         "def": {"leakiness": 50}
       },
-      { "name":"#021",
+      { "name":"005",
         "kind": "SPARSE_FC",
-        "def": {"inputs": 50, "outputs": 25,"sparsity": 0}
+        "source": "004",
+        "outputs": 35,
+        "def": {"sparsity": 0}
       },
       {
-        "name": "#021.1",
+        "name": "006",
         "kind": "LRELU",
+        "source": "005",
         "def": {"leakiness": 50}
       },
       {
-        "name": "#010.01",
+        "name": "007",
         "kind": "DROPOUT",
+        "source": "006",
         "def": {"rate": 0}
       },
-      { "name":"#030",
+      { "name":"008",
         "kind": "SPARSE_FC",
-        "def": {"inputs": 25,"outputs": 10,"sparsity": 0}
+        "source": "007",
+        "outputs": 10,
+        "def": {"sparsity": 0}
       },
       {
-        "name": "#030.1",
+        "name": "009",
         "kind": "SOFTMAX",
+        "source": "008",
         "def": { }
       }
     ],
@@ -62,7 +78,7 @@
         "def": {
           "epochs": 17,
           "mini_batch_size": 32,
-          "threads": 8,
+          "threads": 4,
           "learning_rates": [0.009, 0.0001],
           "save_schedule": [0.7,0.8,0.95,0.98]
         }

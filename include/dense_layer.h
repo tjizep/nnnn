@@ -17,7 +17,6 @@ namespace noodle {
     struct fc_layer : public abstract_layer {
         uint32_t in_size = 0;
         uint32_t out_size = 0;
-        uint32_t index = 0;
         block_sparsity sparseness;
         num_t momentum = 0;
         vec_t biases = row_vector();
@@ -43,7 +42,7 @@ namespace noodle {
             this->momentum = momentum;
             this->sparseness.sparseness = std::min<num_t>(0.99, abs(sparseness));
             this->sparseness.sparsity_greediness = std::max<num_t>(1.01, sparsity_greed);
-            initialize_weights();
+            initialize();
 
         }
 
@@ -51,7 +50,7 @@ namespace noodle {
             return weights;
         }
 
-        void initialize_weights() {
+        bool initialize() {
 
             num_t mc;
             biases = vec_t::Random(out_size);
@@ -61,6 +60,7 @@ namespace noodle {
             weights = mat_t::Random(out_size, in_size);
             weights.array() /= weights.array().abs().maxCoeff();
             //weights.array() -= 0.5;
+            return true;
         }
 
         vec_t forward(const vec_t &io) {
@@ -104,7 +104,7 @@ namespace noodle {
             biases += mini_batch_update_biases;
 
             if (sparseness.sparseness && train_percent > 0.05)
-                sparseness.reduce_weights(weights, this->index);
+                sparseness.reduce_weights(weights);
             if (momentum > 0) {
                 if (prev_weights_delta.size() > 0)
                     weights += momentum * prev_weights_delta;
@@ -149,7 +149,7 @@ namespace noodle {
             }
             in_size = fc.in_size;
             out_size = fc.out_size;
-            index = fc.index;
+            //index = fc.index;
             input = fc.input;
             input_error = fc.input_error;
             output = fc.output;
@@ -183,7 +183,7 @@ namespace noodle {
             sparseness.project_mul_add(mini_batch_update_weights, output_error, input, -learning_rate);
 
             update_mini_batch_weights(learning_rate, output_error);
-
+            index_t index = 1;
             if (index > 0) {
 
                 //input_error = weights.transpose() * output_error; // don't calculate this on the top layer

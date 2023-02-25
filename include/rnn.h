@@ -1,17 +1,18 @@
 //
-// Created by kriso on 2/15/2023.
+// Created by kriso on 2/19/2023.
 //
 
-#ifndef NNNN_ENSEMBLE_H
-#define NNNN_ENSEMBLE_H
+#ifndef NNNN_RNN_H
+#define NNNN_RNN_H
 #include <basics.h>
 #include <abstract_layer.h>
 
 namespace noodle {
     using namespace std;
     using namespace Eigen;
+
     template<typename LayersForward>
-    struct ensemble : public abstract_layer {
+    struct rnn : public abstract_layer {
         uint32_t in_size = 0;
         uint32_t out_size = 0;
         uint32_t index = 0;
@@ -19,18 +20,10 @@ namespace noodle {
         vec_t output = row_vector();
         /// temp data during training
         vec_t input_error = row_vector();
-        LayersForward layers;
-        ensemble(const LayersForward &layers,uint32_t in_size, uint32_t out_size) : abstract_layer(
-                "ENSEMBLE") {
-            this->in_size = in_size;
-            this->out_size = out_size;
-            this->layers = layers;
-        }
 
         vec_t forward(const vec_t &io) {
             input = io;
             //output = weights * input;
-            output = layers.feed_forward(io);
 
             return output;
         }
@@ -60,12 +53,12 @@ namespace noodle {
          * not thread safe so latches/locks should be takem
          * @param fc the shard
          */
-        void update_bp_from(const ensemble &fc) {
+        void update_bp_from(const rnn &fc) {
 
         }
 
-        void raw_copy_from(const ensemble &fc) {
-            // *this = fc;
+        void raw_copy_from(const rnn &fc) {
+            *this = fc;
 
         }
 
@@ -78,10 +71,10 @@ namespace noodle {
         vec_t bp(const vec_t &output_error, num_t learning_rate) {
 
             assert(out_size == 0 || out_size == output_error.rows());
-            input_error = layers.back_prop(output_error,learning_rate);
+            assert(weights.size() > 0);
             return input_error;
 
         };
     };
 }
-#endif //NNNN_ENSEMBLE_H
+#endif //NNNN_RNN_H

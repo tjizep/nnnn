@@ -16,7 +16,7 @@
 namespace console {
     using namespace std;
     static inline bool debugging(){
-        return true;
+        return false;
     }
     static inline bool info(){
         return true;

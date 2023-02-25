@@ -161,7 +161,7 @@ namespace noodle {
         }
 
         __attribute__((noinline))
-        void reduce_weights(mat_t &weights, index_t levl) {
+        void reduce_weights(mat_t &weights) {
             zero_weights(weights);
             copy_from_weights(weights);
             num_t prev_sparsity = get_block_sparseness(weights);

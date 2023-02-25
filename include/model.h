@@ -9,17 +9,68 @@
 #include <activations.h>
 #include <dense_layer.h>
 #include <ensemble.h>
+#include <unordered_set>
+#include <unordered_map>
+#include <list>
 
 namespace noodle {
     using namespace std;
 
+    struct empty_layer : public abstract_layer {
+        vec_t biases = row_vector();
+        mat_t weights = matrix();
+        vec_t input = row_vector();
+        vec_t output = row_vector();
+        vec_t gradient = row_vector();
+
+        empty_layer() : abstract_layer(
+                "EMPTY") {
+        }
+
+        const mat_t &get_weights() const {
+            return weights;
+        }
+
+        vec_t forward(const vec_t &io) {
+            output = io;
+            input = io;
+            return output;
+        }
+
+        const vec_t &get_input() const {
+            return input;
+        }
+
+        vec_t &get_input() {
+            return input;
+        }
+
+        void update_weights(const num_t train_percent) {
+        }
+
+        void update_bp_from(const fc_layer &fc) {
+        }
+
+        void raw_copy_from(const fc_layer &fc) {
+        }
+
+        void update_mini_batch_weights(num_t learning_rate, const vec_t output_error) {
+        }
+
+        vec_t bp(const vec_t &output_error, num_t learning_rate) {
+            gradient = output_error;
+            return gradient;
+        }
+    };
+
+
     /**
-  * used for optional function checking
-  * @tparam T type that has member function
-  * @tparam F the member function input type
-  * @param f the member function itself
-  * @return constexpr true if such a member func exists and thereby enabling further compilation
-  */
+    * used for optional function checking
+    * @tparam T type that has member function
+    * @tparam F the member function input type
+    * @param f the member function itself
+    * @return constexpr true if such a member func exists and thereby enabling further compilation
+    */
     template<typename T, typename F>
     constexpr auto has_member_impl(F &&f) -> decltype(f(std::declval<T>()), true) {
         return true;
@@ -53,7 +104,12 @@ namespace noodle {
             depth = right.depth;
             return *this;
         }
-
+        bool initialize(){
+            bool r = true;
+            if constexpr (has_member(V, initialize()))
+                r = impl.initialize();
+            return r;
+        }
         vec_t forward(const vec_t &input) {
             return impl.forward(input);
         }
@@ -159,9 +215,11 @@ namespace noodle {
             return impl.name;
         }
     };
+
     class layer_holder;
 
     typedef std::variant<
+            model_member<empty_layer>,
             model_member<fc_layer>,
             model_member<sigmoid_layer>,
             model_member<low_sigmoid_layer>,
@@ -174,74 +232,99 @@ namespace noodle {
             model_member<ensemble<layer_holder>>> layer;
 
     typedef std::vector<layer> VarLayers;
+
     class layer_holder {
     public:
         VarLayers model;
 
         vec_t feed_forward(const vec_t &a0);
+
         vec_t back_prop(const vec_t &error_, num_t lr);
     };
 
+    void var_initialize_(layer& l){
+        std::visit([&](auto &&arg) {
+            arg.initialize();
+        }, l);
+    }
 
-    void var_initialize(VarLayers &model) {
-        uint32_t d = 0, ix = 0;
+    template<typename ModelType>
+    void var_initialize(ModelType &model) {
         for (auto &m: model) {
-            if (model_member<sigmoid_layer> *l = std::get_if<model_member<sigmoid_layer>>(&m)) {
-                l->set_depth(d++);
-            }
-            if (model_member<fc_layer> *l = std::get_if<model_member<fc_layer>>(&m)) {
-                l->impl.initialize_weights();
-                l->set_depth(d++);
-                l->impl.index = ix++;
-            }
+            var_initialize_(m);
+        }
+    }
+    void var_set_training_(layer& l, bool training) {
+        std::visit([&](auto &&arg) {
+            arg.set_training(training);
+        }, l);
+    }
+
+    template<typename ModelType>
+    void var_set_training(ModelType &model, bool training) {
+        for (auto &m: model) {
+            var_set_training_(m, training);
+        }
+    }
+    void var_update_weights_(layer &l, num_t train_percent) {
+        std::visit([&](auto &&arg) {
+            arg.update_weights(train_percent);
+        }, l);
+    }
+    template<typename ModelType>
+    void var_update_weights(ModelType &model, num_t train_percent) {
+        for (auto &m: model) {
+            var_update_weights_(m,train_percent);
         }
     }
 
-    void var_set_training(VarLayers &model, bool training) {
+    void var_start_batch_(layer &l) {
+        std::visit([&](auto &&arg) {
+            arg.start_batch();
+        }, l);
+
+    }
+    template<typename ModelType>
+    void var_start_batch(ModelType &model) {
         for (auto &m: model) {
-            std::visit([&](auto &&arg) {
-                arg.set_training(training);
-            }, m);
+            var_start_batch_(m);
         }
     }
 
-    void var_update_weights(VarLayers &model, num_t train_percent) {
+    void var_end_batch_(layer &l) {
+        std::visit([&](auto &&arg) {
+            arg.end_batch();
+        }, l);
+    }
+    template<typename ModelType>
+    void var_end_batch(ModelType &model) {
         for (auto &m: model) {
-            std::visit([&](auto &&arg) {
-                arg.update_weights(train_percent);
-            }, m);
+            var_end_batch_(m);
         }
     }
 
-    void var_start_batch(VarLayers &model) {
+    void var_start_sample_(layer &m) {
+        std::visit([&](auto &&arg) {
+            arg.start_sample();
+        }, m);
+    }
+
+    template<typename ModelType>
+    void var_start_sample(ModelType &model) {
         for (auto &m: model) {
-            std::visit([&](auto &&arg) {
-                arg.start_batch();
-            }, m);
+            var_start_sample_(m);
         }
     }
 
-    void var_end_batch(VarLayers &model) {
-        for (auto &m: model) {
-            std::visit([&](auto &&arg) {
-                arg.end_batch();
-            }, m);
-        }
+    void var_end_sample_(layer &m) {
+        std::visit([&](auto &&arg) {
+            arg.end_sample();
+        }, m);
     }
-
-    void var_start_sample(VarLayers &model) {
+    template<typename ModelType>
+    void var_end_sample(ModelType &model) {
         for (auto &m: model) {
-            std::visit([&](auto &&arg) {
-                arg.start_sample();
-            }, m);
-        }
-    }
-
-    void var_end_sample(VarLayers &model) {
-        for (auto &m: model) {
-            std::visit([&](auto &&arg) {
-                arg.end_sample();
-            }, m);
+            var_end_sample_(m);
         }
     }
 
@@ -317,21 +400,22 @@ namespace noodle {
     vec_t layer_holder::feed_forward(const vec_t &a0) {
         vec_t activation = a0;
         int at = 0;
-        print_dbg("var input activations",activation.norm(),"@",0);
+        print_dbg("var input activations", activation.norm(), "@", 0);
         for (auto &l: model) {
             activation = var_forward(l, activation);
-            print_dbg(at,var_get_name (l),"activation val",activation.norm(),activation.sum());
+            print_dbg(at, var_get_name(l), "activation val", activation.norm(), activation.sum());
             ++at;
         }
         return activation;
     }
+
     vec_t layer_holder::back_prop(const vec_t &error_, num_t lr) {
         vec_t error = error_;
         int lix = model.size() - 1;
-        print_dbg("err.",error.norm());
+        print_dbg("err.", error.norm());
         for (auto cl = model.rbegin(); cl != model.rend(); ++cl) {
             error = var_layer_bp(*cl, error, lr);
-            print_dbg(lix,var_get_name (*cl),"err val",error.norm(),error.sum());
+            print_dbg(lix, var_get_name(*cl), "err val", error.norm(), error.sum());
             //assert(!has_nan(error));
             //assert(!has_inf(error));
             --lix;
@@ -339,6 +423,11 @@ namespace noodle {
         return error;
     }
 
-
+    VarLayers& get_iterable(VarLayers& model){
+        return model;
+    }
+    layer& get_layer(layer& l){
+        return l;
+    }
 }
 #endif //NNNN_MODEL_H

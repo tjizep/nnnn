@@ -12,15 +12,37 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
+
 namespace noodle{
     using namespace std;
     using json = nlohmann::json;
+
     bool is_spec_card(const json& s){
         return s.is_number_integer();
     }
 
     bool is_spec_child(const json& s){
         return s.is_array();
+    }
+    node from(const json& j){
+        node n;
+        if(j.contains("outputs") && j["outputs"].is_number_integer())
+            n.outputs = j["outputs"];
+        if(j.contains("name") && j["name"].is_string())
+            n.name = j["name"];
+        if(j.contains("source") && j["source"].is_string())
+            n.source.push_back(j["source"]);
+        if(j.contains("source") && j["source"].is_array()){
+            for(auto s : j["source"]){
+                n.source.push_back(s);
+            }
+        }
+        if(n.name.empty()){
+            n.clear();
+            print_err("invalid name");
+        }
+
+        return n;
     }
     bool validate_name(string name, size_t count,const json& j){
         if (!j.contains(name)) {
@@ -88,21 +110,43 @@ namespace noodle{
 
         }
     };
+    struct json_graph {
+        graph g;
+    };
 
-    void json2varlayers(VarLayers& layers, const json& l){
-        if(!validate(l, {"def", "kind"}))
-            return;
+    bool json2varlayers(graph & g, VarLayers& layers, const json& l){
+        if(!validate(l, {"def", "kind", "name","source"}))
+            return false;
+        if(!l["name"].is_string()){
+            print_err("name is not a string");
+            return false;
+        }
+        node n = from(l);
+        if(l.empty()){
+            print_err("invalid node");
+            return false;
+        }
+        g.add(n);
 
         auto l_def = l["def"];
         auto l_kind = l["kind"];
-        if(l_kind == "SPARSE_FC"){
-            if(l_def["inputs"].empty())
-                return;
-            if(l_def["outputs"].empty())
-                return;
-            uint32_t inputs = l_def["inputs"];
-            uint32_t outputs = l_def["outputs"];
 
+        string source = *n.source.begin();
+        string name = l["name"];
+
+
+        if(l_kind == "SPARSE_FC"){
+            if(g.resolve(source).empty()){
+                print_err("source", source, "does not exist");
+                return false;
+            }
+
+            uint32_t inputs = g.find_outputs(source);
+            uint32_t outputs = g.find_outputs(name);
+            if(inputs==0){
+                print_err("no non-zero output source found");
+                return false;
+            }
             num_t sparsity = 0;
             num_t sparsity_greed = 8;
             num_t momentum = 0;
@@ -135,59 +179,63 @@ namespace noodle{
         }
 
         if(l_kind == "DROPOUT"){
-
             num_t rate = 0.1;
             if(l_def.contains("rate"))
                 rate = l_def["rate"];
             if(rate < 0 || rate > 1){
                 print_err("invalid dropout rate", rate);
-                return;
+                return false;
             }
             layers.push_back(noodle::dropout_layer{rate});
         }
         if(l_kind == "SOFTMAX"){
             layers.push_back(noodle::soft_max_layer{});
         }
+        return true;
     }
 
-    void json_ensemble_2varlayers(VarLayers& layers, const json& l){
+    bool json_ensemble_2varlayers(graph& g, VarLayers& layers, const json& l){
         if(!validate(l, {"def", "kind"}))
-            return;
-
+            return false;
+        ;
         auto l_def = l["def"];
         auto l_kind = l["kind"];
         if(l_kind == "ENSEMBLE"){
             layer_holder l;
             auto l_models = l_def["models"];
-            json2varlayers(l.model, l_models);
+            json2varlayers(g, l.model, l_models);
 
             uint32_t in_size = l_def["inputs"];
             uint32_t out_size = l_def["outputs"];
 
             layers.push_back(noodle::ensemble<layer_holder>{l, in_size,out_size});
         }
+        return true;
     }
 
-    void load_model_from_json(string path){
+    bool load_model_from_json(string path){
 
         std::ifstream f(path);
         if (!f) {
-            return;
+            print_err("file",path,"not found");
+            return false;
         }
 
         json def = json::parse(f);
         if(def.empty()){
-            return;
+            return false;
         }
         validate(def,
              R"(
                     {"model":
                         ["name","type","layers","optimizer",
                             {"data":
-                                [{"kind":1}, {"def":["scale", "path", "test_label_path"]}]
+                                [{"kind":1}, {"name":1}, {"outputs":1}, {"def":["scale", "path", "test_label_path"]}]
                             }
                         ]
                  })"_json);
+
+        graph g;
 
         auto model_def = def["model"];
         auto optimizer_def = model_def["optimizer"];
@@ -196,6 +244,9 @@ namespace noodle{
         auto data_kind = data["kind"];
         auto data_def = data["def"];
         auto data_dir = data_def["path"];
+        node dn = from(data);
+        string name = dn.name;
+        g.add(dn);
 
         training_set ts;
 
@@ -203,22 +254,23 @@ namespace noodle{
             mnist_loader loader;
             loader.load(ts, data["def"]);
         }else{
-            return;
+            return false;
         }
 
         VarLayers physical;
         for(auto l : layers){
-            json2varlayers(physical, l);
-            json_ensemble_2varlayers(physical, l);
+            if(!json2varlayers(g, physical, l))
+                return false;
+            // NOT yet, json_ensemble_2varlayers(physical, l);
         }
         print_dbg("physical.size()",physical.size());
-        for(auto o : optimizer_def){
-            if(!validate(o, {"kind", "def"}) )
-                return;
+        for(auto o : optimizer_def) {
+            if (!validate(o, {"kind", "def"}))
+                return false;
             json kind = o["kind"];
             json def = o["def"];
-            if(!validate(def, {"epochs", "mini_batch_size", "learning_rates", "threads"})){
-                return;
+            if (!validate(def, {"epochs", "mini_batch_size", "learning_rates", "threads"})) {
+                return false;
             }
 
             print_dbg("OK optimizer");
@@ -227,15 +279,25 @@ namespace noodle{
             size_t threads = def["threads"];
             auto lr = def["learning_rates"];
             auto save_schedule = def["save_schedule"];// unused
-            print_dbg("learning rates",(num_t)lr[0],(num_t)lr[1]);
-            array<noodle::num_t,2>  learning_rate = {lr[0], lr[1]};
+            print_dbg("learning rates", (num_t) lr[0], (num_t) lr[1]);
+            array<noodle::num_t, 2> learning_rate = {lr[0], lr[1]};
+            if (!g.build_destinations()){
+                return false;
+            }
+
+            graph::forward_selector fwrd = g.first();
+            while (fwrd.ok(g)) {
+
+                fwrd.next(g);
+            }
+
             noodle::trainer n(ts, mini_batch_size, learning_rate);
 
             n.stochastic_gradient_descent(physical, epochs, threads, 75);
-
+            //n.stochastic_gradient_descent(g, epochs, threads, 75);
 
         }
-
+        return true;
     }
 }
 #endif //NNNN_MODEL_JSON_H
