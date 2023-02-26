@@ -45,17 +45,7 @@ namespace noodle {
             return input;
         }
 
-        void update_weights(const num_t train_percent) {
-        }
 
-        void update_bp_from(const fc_layer &fc) {
-        }
-
-        void raw_copy_from(const fc_layer &fc) {
-        }
-
-        void update_mini_batch_weights(num_t learning_rate, const vec_t output_error) {
-        }
 
         vec_t bp(const vec_t &output_error, num_t learning_rate) {
             gradient = output_error;

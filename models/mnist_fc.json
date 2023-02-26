@@ -20,8 +20,8 @@
       { "name":"001",
         "kind": "SPARSE_FC",
         "source": "D001",
-        "outputs": 140,
-        "def": {"sparsity": 0.63}
+        "outputs": 150,
+        "def": {"sparsity": 0.75}
       },
       {
         "name": "002",
@@ -78,7 +78,7 @@
         "def": {
           "epochs": 17,
           "mini_batch_size": 32,
-          "threads": 4,
+          "threads": 8,
           "learning_rates": [0.009, 0.0001],
           "save_schedule": [0.7,0.8,0.95,0.98]
         }

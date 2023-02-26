@@ -61,7 +61,9 @@ namespace noodle {
             vec_t activation = a0;
             int at = 0;
             graph::forward_selector fwrd = model.first();
+            index_t l = 0;
             while (fwrd.ok(model)) {
+                print_dbg("forward graph", a0.size(), l++);
                 activation = var_forward(fwrd.resolve(model).operation, activation);
                 //cout << at << " " << var_get_name (l) << " activation val " << activation.norm() << " " << activation.sum() <<endl;
                 ++at;
@@ -71,9 +73,12 @@ namespace noodle {
         }
 
         static inline void var_bp(const vec_t &error_, num_t lr, graph &model) {
+            print_dbg("var_bp graph", error_.size());
             vec_t error = error_;
             graph::reverse_selector bw = model.last();
+            index_t l = 0;
             while(bw.ok(model)){
+                print_dbg("var_bp layer", l++, bw.resolve(model).name, var_get_name(bw.resolve(model).operation));
                 error = var_layer_bp(bw.resolve(model).operation, error, lr);
 
                 bw.next(model);
@@ -254,6 +259,7 @@ namespace noodle {
         }
         static void
         update_sample(const vec_t &a0_, const vec_t &target_, size_t batch_index, num_t lr, graph &model) {
+            print_dbg("update_sample_layers", batch_index);
             model.start_sample();
             vec_t a0 = a0_, target = target_;
             vec_t result = var_feed_forward(a0, model);
@@ -309,6 +315,7 @@ namespace noodle {
          template<typename ModelType>
         void update_mini_batch(vector<int> &indices, int batch_num, num_t lr, ModelType &model) {
             int batch_index = 0;
+            print_dbg("update_mini_batch",batch_num);
             var_start_batch(model);
             for (int b = batch_num * mini_batch_size_;
                  b < ((batch_num * mini_batch_size_) + mini_batch_size_) && b < data.training_outputs.size();

@@ -126,14 +126,14 @@ namespace noodle{
             print_err("invalid node");
             return false;
         }
-        g.add(n);
+        index_t nix = g.add(n);
 
         auto l_def = l["def"];
         auto l_kind = l["kind"];
 
         string source = *n.source.begin();
         string name = l["name"];
-
+        layer oper = noodle::empty_layer{};
 
         if(l_kind == "SPARSE_FC"){
             if(g.resolve(source).empty()){
@@ -152,30 +152,29 @@ namespace noodle{
             num_t momentum = 0;
             if(l_def.contains("sparsity"))
                 sparsity = l_def["sparsity"];
-            layers.push_back(noodle::fc_layer{inputs, outputs, sparsity, sparsity_greed, momentum});
-
+            oper = noodle::fc_layer{inputs, outputs, sparsity, sparsity_greed, momentum};
         }
 
         if(l_kind == "LRELU"){
             num_t leakiness = 1000;
             if(l_def.contains("leakiness"))
                 leakiness = l_def["leakiness"];
-            layers.push_back(noodle::relu_layer{leakiness});
+            oper = noodle::relu_layer{leakiness};
         }
 
         if(l_kind == "TANH"){
-            layers.push_back(noodle::tanh_layer{});
+            oper = noodle::tanh_layer{};
         }
 
         if(l_kind == "SIGMOID"){
-            layers.push_back(noodle::sigmoid_layer{});
+            oper = noodle::sigmoid_layer{};
         }
 
         if(l_kind == "FLAT_SIGMOID"){
             num_t flatness = 0.35;
             if(l_def.contains("flatness"))
                 flatness = l_def["flatness"];
-            layers.push_back(noodle::low_sigmoid_layer{flatness});
+            oper = noodle::low_sigmoid_layer{flatness};
         }
 
         if(l_kind == "DROPOUT"){
@@ -186,11 +185,14 @@ namespace noodle{
                 print_err("invalid dropout rate", rate);
                 return false;
             }
-            layers.push_back(noodle::dropout_layer{rate});
+            oper = noodle::dropout_layer{rate};
         }
         if(l_kind == "SOFTMAX"){
-            layers.push_back(noodle::soft_max_layer{});
+            oper = noodle::soft_max_layer{};
         }
+
+        g.resolve(nix).operation = oper;
+        //layers.push_back(oper);
         return true;
     }
 
@@ -200,6 +202,7 @@ namespace noodle{
         ;
         auto l_def = l["def"];
         auto l_kind = l["kind"];
+        layer oper = noodle::empty_layer{};
         if(l_kind == "ENSEMBLE"){
             layer_holder l;
             auto l_models = l_def["models"];
@@ -207,9 +210,10 @@ namespace noodle{
 
             uint32_t in_size = l_def["inputs"];
             uint32_t out_size = l_def["outputs"];
-
-            layers.push_back(noodle::ensemble<layer_holder>{l, in_size,out_size});
+            oper = noodle::ensemble<layer_holder>{l, in_size,out_size};
+            //layers.push_back();
         }
+        layers.push_back(oper);
         return true;
     }
 
@@ -293,8 +297,8 @@ namespace noodle{
 
             noodle::trainer n(ts, mini_batch_size, learning_rate);
 
-            n.stochastic_gradient_descent(physical, epochs, threads, 75);
-            //n.stochastic_gradient_descent(g, epochs, threads, 75);
+            //n.stochastic_gradient_descent(physical, epochs, threads, 75);
+            n.stochastic_gradient_descent(g, epochs, threads, 75);
 
         }
         return true;
