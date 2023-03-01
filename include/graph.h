@@ -17,10 +17,12 @@ namespace noodle{
         vector<index_t> destinations;
         vector<index_t> sources;
 
-        vector<vec_t> activations;
+        vec_t activation = row_vector();
+        vec_t output = row_vector();
         vector<vec_t> errors;
 
-        uint32_t outputs{0};
+        index_t outputs{0};
+        index_t inputs{0};
         layer operation{empty_layer{}};
         index_t index{-1};
 
@@ -270,8 +272,46 @@ namespace noodle{
             forward_selector(index_t initial) {
                 destinations().push_back(initial);
             }
-            ~forward_selector(){};
+            forward_selector(vector<index_t> destinations) {
+                this->destinations() = destinations;
+            }
 
+            void set_activation(graph& model, const vec_t &activation){
+                resolve(model).activation = activation;
+            }
+            vec_t& get_activation(graph& model){
+                return resolve(model).activation;
+            }
+            vec_t activation;
+            bool forward(graph& model){
+                index_t inputs = resolve(model).inputs;
+                index_t outputs = resolve(model).outputs;
+                //print_dbg(inputs,outputs,get_activation(model).rows());
+                if(inputs > 0 && get_activation(model).rows() > 0 && inputs != get_activation(model).rows()){
+                    print_err("the required vector input size (inputs)",resolve(model).inputs,"does not match the given",get_activation(model).rows());
+                    return false;
+                }
+                activation = var_forward(resolve(model).operation, get_activation(model));
+                resolve(model).output = activation;
+
+                if(outputs != activation.rows()){
+                    print_err("output size (outputs)",outputs,"does not match the given",activation.rows());
+                    return false;
+                }
+                for(auto d : resolve(model).destinations){
+                    model.resolve(d).activation = activation;
+                }
+                return true;
+
+            }
+            vec_t vforward(graph& model, vec_t& activation){
+                vec_t r = var_forward(resolve(model).operation, activation);
+                for(auto d : resolve(model).destinations){
+                    //model.resolve(d).activations.push_back(activation);
+                }
+                return r;
+
+            }
 
             bool next(const graph &g) {
                 index_t current = get();
@@ -296,6 +336,9 @@ namespace noodle{
             reverse_selector(index_t initial) {
                 sources().push_back(initial);
             }
+            reverse_selector(vector<index_t> sources) {
+                this->sources() = sources;
+            }
 
             bool next(const graph &g) {
                 if (sources().empty()) return false;
@@ -315,9 +358,7 @@ namespace noodle{
                     destinations.push_back(n.index);
                 }
             }
-            forward_selector r;
-            r.destinations() = destinations;
-            return r;
+            return {destinations};
         }
 
         reverse_selector last() const {
@@ -327,9 +368,7 @@ namespace noodle{
                     sources.push_back(n.index);
                 }
             }
-            reverse_selector r;
-            r.sources() = sources;
-            return r;
+            return {sources};
         }
         typedef Nodes::iterator iterator;
         iterator begin() {

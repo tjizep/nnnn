@@ -15,41 +15,24 @@
 
 namespace noodle {
     using namespace std;
-
+    /// minimal layer that will still propagate
     struct empty_layer : public abstract_layer {
-        vec_t biases = row_vector();
-        mat_t weights = matrix();
         vec_t input = row_vector();
-        vec_t output = row_vector();
-        vec_t gradient = row_vector();
-
         empty_layer() : abstract_layer(
                 "EMPTY") {
         }
-
-        const mat_t &get_weights() const {
-            return weights;
-        }
-
         vec_t forward(const vec_t &io) {
-            output = io;
             input = io;
-            return output;
+            return input;
         }
-
         const vec_t &get_input() const {
             return input;
         }
-
         vec_t &get_input() {
             return input;
         }
-
-
-
         vec_t bp(const vec_t &output_error, num_t learning_rate) {
-            gradient = output_error;
-            return gradient;
+            return output_error;
         }
     };
 

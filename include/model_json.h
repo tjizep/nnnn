@@ -134,6 +134,9 @@ namespace noodle{
         string source = *n.source.begin();
         string name = l["name"];
         layer oper = noodle::empty_layer{};
+        uint32_t inputs = g.find_outputs(source); /// all nodes have a input
+        g.resolve(nix).inputs = inputs;
+
 
         if(l_kind == "SPARSE_FC"){
             if(g.resolve(source).empty()){
@@ -141,18 +144,19 @@ namespace noodle{
                 return false;
             }
 
-            uint32_t inputs = g.find_outputs(source);
             uint32_t outputs = g.find_outputs(name);
             if(inputs==0){
                 print_err("no non-zero output source found");
                 return false;
             }
+
             num_t sparsity = 0;
             num_t sparsity_greed = 8;
             num_t momentum = 0;
             if(l_def.contains("sparsity"))
                 sparsity = l_def["sparsity"];
             oper = noodle::fc_layer{inputs, outputs, sparsity, sparsity_greed, momentum};
+            g.resolve(nix).outputs = outputs;
         }
 
         if(l_kind == "LRELU"){
@@ -160,14 +164,17 @@ namespace noodle{
             if(l_def.contains("leakiness"))
                 leakiness = l_def["leakiness"];
             oper = noodle::relu_layer{leakiness};
+            g.resolve(nix).outputs = inputs; /// by default output size = inputsize ?
         }
 
         if(l_kind == "TANH"){
             oper = noodle::tanh_layer{};
+            g.resolve(nix).outputs = inputs; /// by default output size = inputsize ?
         }
 
         if(l_kind == "SIGMOID"){
             oper = noodle::sigmoid_layer{};
+            g.resolve(nix).outputs = inputs; /// by default output size = inputsize ?
         }
 
         if(l_kind == "FLAT_SIGMOID"){
@@ -175,6 +182,7 @@ namespace noodle{
             if(l_def.contains("flatness"))
                 flatness = l_def["flatness"];
             oper = noodle::low_sigmoid_layer{flatness};
+            g.resolve(nix).outputs = inputs; /// by default output size = inputsize ?
         }
 
         if(l_kind == "DROPOUT"){
@@ -186,9 +194,11 @@ namespace noodle{
                 return false;
             }
             oper = noodle::dropout_layer{rate};
+            g.resolve(nix).outputs = inputs; /// by default output size = inputsize ?
         }
         if(l_kind == "SOFTMAX"){
             oper = noodle::soft_max_layer{};
+            g.resolve(nix).outputs = inputs; /// by default output size = inputsize ?
         }
 
         g.resolve(nix).operation = oper;
@@ -289,15 +299,9 @@ namespace noodle{
                 return false;
             }
 
-            graph::forward_selector fwrd = g.first();
-            while (fwrd.ok(g)) {
-
-                fwrd.next(g);
-            }
-
             noodle::trainer n(ts, mini_batch_size, learning_rate);
 
-            //n.stochastic_gradient_descent(physical, epochs, threads, 75);
+           // n.stochastic_gradient_descent(physical, epochs, threads, 75);
             n.stochastic_gradient_descent(g, epochs, threads, 75);
 
         }

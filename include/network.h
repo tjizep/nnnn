@@ -60,16 +60,19 @@ namespace noodle {
         static vec_t var_feed_forward(vec_t &a0, graph &model) {
             vec_t activation = a0;
             int at = 0;
-            graph::forward_selector fwrd = model.first();
+
             index_t l = 0;
-            while (fwrd.ok(model)) {
-                print_dbg("forward graph", a0.size(), l++);
-                activation = var_forward(fwrd.resolve(model).operation, activation);
-                //cout << at << " " << var_get_name (l) << " activation val " << activation.norm() << " " << activation.sum() <<endl;
-                ++at;
-                fwrd.next(model);
+            graph::forward_selector fwrd = model.first();
+            if(!fwrd.ok(model)){
+                print_err("graph seems empty");
+                return activation;
             }
-            return activation;
+            fwrd.set_activation(model, activation);
+            for (;fwrd.ok(model);fwrd.next(model)) {
+                print_dbg("forward graph", activation.size(), l++);
+                fwrd.forward(model);
+            }
+            return fwrd.activation;
         }
 
         static inline void var_bp(const vec_t &error_, num_t lr, graph &model) {
