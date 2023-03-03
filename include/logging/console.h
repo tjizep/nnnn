@@ -112,12 +112,18 @@ namespace console {
         std::string ln = cat(values, separator);
         std::cerr << ln << std::endl;
     }
+    static inline void fatalln(const std::vector<_LogValue>& values, const std::string& separator = ""){
+        std::string ln = cat(values, separator);
+        std::cerr << ln << std::endl;
+        exit(-1);
+    }
 };
 #ifndef unlikely
 #define unlikely(x) x
 #endif
 // safe logging methods based on std::variant
 #define print_err(...)             do {  if (true) (console::errorln({console::cat({"[ERR][",console::current_time(),"][",__FUNCTION__,"]"}), ##__VA_ARGS__ }, " ")); } while(0)
+#define fatal_err(...)             do {  if (true) (console::fatalln({console::cat({"[ERR][",console::current_time(),"][",__FUNCTION__,"]"}), ##__VA_ARGS__ }, " ")); } while(0)
 #define DBG_PRINT
 #ifdef DBG_PRINT
 #define print_dbg(...)             do {  if (unlikely(console::debugging())) (console::println({console::cat({"[DBG][",console::current_time(),"][",__PRETTY_FUNCTION__,"]"}), ##__VA_ARGS__ }, " ")); } while(0)

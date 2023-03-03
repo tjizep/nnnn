@@ -31,7 +31,7 @@ namespace mnist {
             file.read(reinterpret_cast<char *>(&magic), 4);
             magic = swap_endian(magic);
             if (magic != 2049) {
-                print_err("unexpected magic number:", magic, "(expecting 2049)");
+                fatal_err("unexpected magic number:", magic, "(expecting 2049)");
                 return labels;
             }
 
@@ -43,7 +43,7 @@ namespace mnist {
                 labels.push_back(label);
             }
         } else {
-            print_err("could not read label file", path);
+            fatal_err("could not read label file", path);
         }
         return labels;
     }
@@ -64,7 +64,7 @@ namespace mnist {
             file.read(reinterpret_cast<char *>(&magic), 4);
             magic = swap_endian(magic);
             if (magic != 2051) {
-                print_err("surprising magic number:", magic, "(expexted 2051)");
+                fatal_err("surprising magic number:", magic, "(expexted 2051)");
                 return images;
             }
 
@@ -123,7 +123,7 @@ namespace mnist {
             }
             print_inf(max_at);
         } else {
-            print_err("Failure reading image file:", path);
+            fatal_err("Failure reading image file:", path);
         }
         return images;
     }

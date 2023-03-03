@@ -39,17 +39,17 @@ namespace noodle{
         }
         if(n.name.empty()){
             n.clear();
-            print_err("invalid name");
+            fatal_err("invalid name");
         }
 
         return n;
     }
     bool validate_name(string name, size_t count,const json& j){
         if (!j.contains(name)) {
-            print_err("expected element", name, "not found");
+            fatal_err("expected element", name, "not found");
             return false;
         } else if (j[name].size() < count) {
-            print_err("element", name, "has less than", count, "elements");
+            fatal_err("element", name, "has less than", count, "elements");
             return false;
         }
         return true;
@@ -118,12 +118,12 @@ namespace noodle{
         if(!validate(l, {"def", "kind", "name","source"}))
             return false;
         if(!l["name"].is_string()){
-            print_err("name is not a string");
+            fatal_err("name is not a string");
             return false;
         }
         node n = from(l);
         if(l.empty()){
-            print_err("invalid node");
+            fatal_err("invalid node");
             return false;
         }
         index_t nix = g.add(n);
@@ -140,13 +140,13 @@ namespace noodle{
 
         if(l_kind == "SPARSE_FC"){
             if(g.resolve(source).empty()){
-                print_err("source", source, "does not exist");
+                fatal_err("source", source, "does not exist");
                 return false;
             }
 
             uint32_t outputs = g.find_outputs(name);
             if(inputs==0){
-                print_err("no non-zero output source found");
+                fatal_err("no non-zero output source found");
                 return false;
             }
 
@@ -190,7 +190,7 @@ namespace noodle{
             if(l_def.contains("rate"))
                 rate = l_def["rate"];
             if(rate < 0 || rate > 1){
-                print_err("invalid dropout rate", rate);
+                fatal_err("invalid dropout rate", rate);
                 return false;
             }
             oper = noodle::dropout_layer{rate};
@@ -231,7 +231,7 @@ namespace noodle{
 
         std::ifstream f(path);
         if (!f) {
-            print_err("file",path,"not found");
+            fatal_err("file",path,"not found");
             return false;
         }
 

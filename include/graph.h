@@ -84,7 +84,7 @@ namespace noodle{
             auto idest = dest.nodes.begin();
             for (; isource != nodes.end() && idest != dest.nodes.end(); ++isource, ++idest) {
                 if (!var_layer_update_bp(idest->operation, isource->operation)) {
-                    print_err("layer type not found");
+                    fatal_err("layer type not found");
                 }
             }
         }
@@ -111,7 +111,7 @@ namespace noodle{
 
                         index_t ix = id(s);
                         if (ix < 0) {
-                            print_err("could not find id", ix, "for", s);
+                            fatal_err("could not find id", ix, "for", s);
                             return false;
                         }
                         print_dbg(n.name, n.index, ":", s, ix);
@@ -139,12 +139,12 @@ namespace noodle{
                     print_dbg(n.name, ":", s);
                     index_t ix = id(s);
                     if (resolve(ix).empty()) {
-                        print_err("invalid node name", s);
+                        fatal_err("invalid node name", s);
                         return false;
                     }
 
                     if (n.contains_destination(n.index)) {
-                        print_err("duplicate destination", n.name, n.index);
+                        fatal_err("duplicate destination", n.name, n.index);
                         return false;
                     }
                     resolve(ix).destinations.push_back(n.index);
@@ -214,7 +214,7 @@ namespace noodle{
                 for (auto d: n.destinations) {
                     auto ds = std::find(resolve(d).sources.begin(), resolve(d).sources.end(), n.index);
                     if (ds == resolve(d).sources.end()) {
-                        print_err("source", n.index, "not found in node", d);
+                        fatal_err("source", n.index, "not found in node", d);
                         return false;
                     }
                 }
@@ -229,7 +229,7 @@ namespace noodle{
 
                 auto i = index.find(source);
                 if (i == index.end()) {
-                    print_err("source not found", source);
+                    fatal_err("source not found", source);
                     return index.end();
                 }
                 return i;
@@ -243,16 +243,16 @@ namespace noodle{
 
         uint32_t find_outputs(NameIndex::const_iterator is, NameSet names = {}) const {
             if (is == index.end()) {
-                print_err("source not found");
+                fatal_err("source not found");
                 return 0;
             }
             const auto l = is->second;
             if (resolve(l).empty()) {
-                print_err("source not found");
+                fatal_err("source not found");
                 return 0;
             }
             if (names.contains(resolve(l).name)) {
-                print_err("name cycle detected at", resolve(l).name);
+                fatal_err("name cycle detected at", resolve(l).name);
                 return 0;
             }
             if (resolve(l).outputs == 0) {
@@ -300,7 +300,7 @@ namespace noodle{
 
             void set_activation(graph& model, const vec_t &activation){
                 if(!resolve(model).sources.empty()){
-                    print_err("this is not a root node");
+                    fatal_err("this is not a root node");
                     return;
                 }
                 resolve(model).activation = activation;
@@ -315,7 +315,7 @@ namespace noodle{
             bool get_activations(graph& model){
                 activations.clear();
                 if(resolve(model).sources.size() < 2){
-                    print_err("requires multiple activations");
+                    fatal_err("requires multiple activations");
                     return false;
                 }
                 for(auto s : resolve(model).sources){
@@ -329,7 +329,7 @@ namespace noodle{
                 index_t outputs = resolve(model).outputs;
                 //print_dbg(inputs,outputs,get_activation(model).rows());
                 if(inputs > 0 && get_activation(model).rows() > 0 && inputs != get_activation(model).rows()){
-                    print_err("the required vector input size (inputs)",resolve(model).inputs,"does not match the given",get_activation(model).rows());
+                    fatal_err("the required vector input size (inputs)",resolve(model).inputs,"does not match the given",get_activation(model).rows());
                     return false;
                 }
                 if(resolve(model).sources.size() > 1){
@@ -340,7 +340,7 @@ namespace noodle{
                 }
 #if 0
                 if(outputs != resolve(model).output.rows()){
-                    print_err("output size (outputs)",outputs,"does not match the given",resolve(model).output.rows());
+                    fatal_err("output size (outputs)",outputs,"does not match the given",resolve(model).output.rows());
                     return false;
                 }
 #endif
@@ -386,7 +386,7 @@ namespace noodle{
 
             void set_error(graph& model, const vec_t & error){
                 if(resolve(model).sources.empty()){
-                    print_err("this is not a end node");
+                    fatal_err("this is not a end node");
                     return;
                 }
                 resolve(model).bp_input = error;
@@ -401,7 +401,7 @@ namespace noodle{
             vector<vec_t>& get_errors(graph& model){
                 errors.clear();
                 if(resolve(model).destinations.size() < 2){
-                    print_err("requires multiple activations");
+                    fatal_err("requires multiple activations");
                     return errors;
                 }
                 for(auto s : resolve(model).destinations){
@@ -426,7 +426,7 @@ namespace noodle{
                 index_t outputs = resolve(model).outputs;
                 print_dbg(inputs,outputs,get_error(model).rows(),resolve(model).name);
                 if(outputs > 0 && get_error(model).rows() > 0 && outputs != get_error(model).rows()){
-                    print_err("the required output vector size (outputs)",outputs,"does not match the given",get_error(model).rows());
+                    fatal_err("the required output vector size (outputs)",outputs,"does not match the given",get_error(model).rows());
                     return false;
                 }
                 /// "destinations" are realy the sources of the backprop operation
@@ -437,7 +437,7 @@ namespace noodle{
                 }
 #if 0
                 if(outputs != resolve(model).output.rows()){
-                    print_err("output size (outputs)",outputs,"does not match the given",resolve(model).output.rows());
+                    fatal_err("output size (outputs)",outputs,"does not match the given",resolve(model).output.rows());
                     return false;
                 }
 #endif

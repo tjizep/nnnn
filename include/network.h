@@ -61,7 +61,7 @@ namespace noodle {
             index_t l = 0;
             graph::forward_selector fwrd = model.first();
             if(!fwrd.ok(model)){
-                print_err("graph seems empty");
+                fatal_err("graph seems empty");
                 return a0;
             }
             index_t last = fwrd.get();
@@ -79,7 +79,7 @@ namespace noodle {
             print_dbg("var_bp graph", error.size());
             graph::reverse_selector bw = model.last();
             if(!bw.ok(model)){
-                print_err("graph seems empty");
+                fatal_err("graph seems empty");
                 return;
             }
             index_t l = 0;
@@ -294,7 +294,7 @@ namespace noodle {
             auto idest = dest.begin();
             for (; isource != source.end() && idest != dest.end(); ++isource, ++idest) {
                 if (!var_layer_update_bp(*idest, *isource)) {
-                    print_err("layer type not found");
+                    fatal_err("layer type not found");
                 }
             }
         }
@@ -307,7 +307,7 @@ namespace noodle {
             auto idest = dest.begin();
             for (; isource != source.end() && idest != dest.end(); ++isource, ++idest) {
                 if (!var_layer_raw_copy(*idest, *isource)) {
-                    print_err("layer type not found");
+                    fatal_err("layer type not found");
                 }
             }
         }
