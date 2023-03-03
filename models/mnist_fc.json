@@ -57,7 +57,6 @@
         "name": "007",
         "kind": "DROPOUT",
         "source": "006",
-        "outputs": "50",
         "def": {"rate": 0}
       },
       { "name":"008",

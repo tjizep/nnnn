@@ -86,6 +86,11 @@ namespace noodle {
         vec_t forward(const vec_t &input) {
             return impl.forward(input);
         }
+        vec_t forward(const vector<vec_t> &input) {
+            if constexpr (has_member(V, forward(input)))
+                return impl.forward(input);
+            return row_vector();
+        }
 
         void set_depth(uint32_t d) {
             depth = d;
@@ -129,6 +134,12 @@ namespace noodle {
          */
         vec_t bp(const vec_t &input_error, num_t learning_rate) {
             return impl.bp(input_error, learning_rate);
+        }
+
+        vec_t bp(const vector<vec_t> &input_errors, num_t learning_rate) {
+            if constexpr (has_member(V, bp(input_errors)))
+                return impl.bp(input_errors, learning_rate);
+            return row_vector();
         }
 
         vec_t get_input() const {
@@ -306,6 +317,11 @@ namespace noodle {
             return arg.forward(input);
         }, v);
     }
+    vec_t var_forward(layer &v, const vector<vec_t> &input) {
+        return std::visit([&](auto &&arg) -> vec_t {
+            return arg.forward(input);
+        }, v);
+    }
 
     bool var_layer_update_bp(layer &dest, const layer &source) {
         std::visit([&](auto &&arg) {
@@ -335,6 +351,11 @@ namespace noodle {
     }
 
     static inline vec_t var_layer_bp(layer &v, const vec_t &input_error, num_t learning_rate) {
+        return std::visit([&](auto &&arg) -> vec_t {
+            return arg.bp(input_error, learning_rate);
+        }, v);
+    }
+    static inline vec_t var_layer_bp(layer &v, const vector<vec_t> &input_error, num_t learning_rate) {
         return std::visit([&](auto &&arg) -> vec_t {
             return arg.bp(input_error, learning_rate);
         }, v);

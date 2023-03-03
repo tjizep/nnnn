@@ -67,23 +67,31 @@ namespace noodle {
                 print_err("graph seems empty");
                 return activation;
             }
+            index_t last = fwrd.get();
             fwrd.set_activation(model, activation);
             for (;fwrd.ok(model);fwrd.next(model)) {
-                print_dbg("forward graph", activation.size(), l++);
+                //print_dbg("forward graph", activation.size(), l++);
                 fwrd.forward(model);
+                last = fwrd.get();
             }
-            return fwrd.activation;
+            return model.resolve(last).output;
         }
 
-        static inline void var_bp(const vec_t &error_, num_t lr, graph &model) {
-            print_dbg("var_bp graph", error_.size());
-            vec_t error = error_;
+        static inline void var_bp(const vec_t &error, num_t lr, graph &model) {
+            print_dbg("var_bp graph", error.size());
             graph::reverse_selector bw = model.last();
+            if(!bw.ok(model)){
+                print_err("graph seems empty");
+                return;
+            }
             index_t l = 0;
+            bw.set_error(model, error);
             while(bw.ok(model)){
                 print_dbg("var_bp layer", l++, bw.resolve(model).name, var_get_name(bw.resolve(model).operation));
-                error = var_layer_bp(bw.resolve(model).operation, error, lr);
-
+                //error = var_layer_bp(bw.resolve(model).operation, error, lr);
+                if(!bw.backward(model, lr)){
+                    return;
+                }
                 bw.next(model);
             }
         }

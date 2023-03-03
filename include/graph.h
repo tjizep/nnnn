@@ -17,9 +17,14 @@ namespace noodle{
         vector<index_t> destinations;
         vector<index_t> sources;
 
+        /// results for forward operation
         vec_t activation = row_vector();
         vec_t output = row_vector();
         vector<vec_t> errors;
+
+        /// result for gradient backpropagation
+        vec_t bp_input = row_vector(); // aka gradient
+        vec_t bp_output = row_vector();
 
         index_t outputs{0};
         index_t inputs{0};
@@ -116,7 +121,11 @@ namespace noodle{
             }
             return true;
         }
-
+        void clear_activations() {
+            for (auto &n: nodes) {
+                //n.activations.clear();
+            }
+        }
         bool build_destinations() {
             if (!build_sources()) {
                 return false;
@@ -143,6 +152,7 @@ namespace noodle{
             }
             return true;
         }
+
 
         void clear() {
             empty.clear();
@@ -197,6 +207,18 @@ namespace noodle{
 
         bool is_empty(const node &n) {
             return n.empty() || &n == &empty;
+        }
+
+        bool validate_sources() const {
+            for (auto &n: nodes) {
+                for (auto d: n.destinations) {
+                    auto ds = std::find(resolve(d).sources.begin(), resolve(d).sources.end(), n.index);
+                    if (ds == resolve(d).sources.end()) {
+                        print_err("source", n.index, "not found in node", d);
+                        return false;
+                    }
+                }
+            }
         }
 
         NameIndex::const_iterator validate_source(index_t l) const {
@@ -277,12 +299,31 @@ namespace noodle{
             }
 
             void set_activation(graph& model, const vec_t &activation){
+                if(!resolve(model).sources.empty()){
+                    print_err("this is not a root node");
+                    return;
+                }
                 resolve(model).activation = activation;
             }
             vec_t& get_activation(graph& model){
+                for(auto s : resolve(model).sources){
+                    return model.resolve(s).output;
+                }
                 return resolve(model).activation;
             }
-            vec_t activation;
+            vector<vec_t> activations;
+            bool get_activations(graph& model){
+                activations.clear();
+                if(resolve(model).sources.size() < 2){
+                    print_err("requires multiple activations");
+                    return false;
+                }
+                for(auto s : resolve(model).sources){
+                    activations.push_back(model.resolve(s).output);
+                }
+                return !activations.empty();
+            }
+
             bool forward(graph& model){
                 index_t inputs = resolve(model).inputs;
                 index_t outputs = resolve(model).outputs;
@@ -291,19 +332,21 @@ namespace noodle{
                     print_err("the required vector input size (inputs)",resolve(model).inputs,"does not match the given",get_activation(model).rows());
                     return false;
                 }
-                activation = var_forward(resolve(model).operation, get_activation(model));
-                resolve(model).output = activation;
-
-                if(outputs != activation.rows()){
-                    print_err("output size (outputs)",outputs,"does not match the given",activation.rows());
+                if(resolve(model).sources.size() > 1){
+                    get_activations(model);
+                    resolve(model).output = var_forward(resolve(model).operation, activations);
+                }else{
+                    resolve(model).output = var_forward(resolve(model).operation, get_activation(model));
+                }
+#if 0
+                if(outputs != resolve(model).output.rows()){
+                    print_err("output size (outputs)",outputs,"does not match the given",resolve(model).output.rows());
                     return false;
                 }
-                for(auto d : resolve(model).destinations){
-                    model.resolve(d).activation = activation;
-                }
+#endif
                 return true;
-
             }
+
             vec_t vforward(graph& model, vec_t& activation){
                 vec_t r = var_forward(resolve(model).operation, activation);
                 for(auto d : resolve(model).destinations){
@@ -325,6 +368,7 @@ namespace noodle{
         };
 
         struct reverse_selector : public base_selector {
+            vector<vec_t> errors; /// when we are collecting multiple sources
             vector<index_t>& sources(){
                 return pointers;
             }
@@ -340,6 +384,32 @@ namespace noodle{
                 this->sources() = sources;
             }
 
+            void set_error(graph& model, const vec_t & error){
+                if(resolve(model).sources.empty()){
+                    print_err("this is not a end node");
+                    return;
+                }
+                resolve(model).bp_input = error;
+            }
+            vec_t& get_error(graph& model){
+                for(auto s : resolve(model).destinations){
+                    return model.resolve(s).bp_output;
+                }
+                return resolve(model).bp_input;
+            }
+
+            vector<vec_t>& get_errors(graph& model){
+                errors.clear();
+                if(resolve(model).destinations.size() < 2){
+                    print_err("requires multiple activations");
+                    return errors;
+                }
+                for(auto s : resolve(model).destinations){
+                    errors.push_back(model.resolve(s).bp_output);
+                }
+                return errors;
+            }
+
             bool next(const graph &g) {
                 if (sources().empty()) return false;
                 index_t current = get();
@@ -347,6 +417,30 @@ namespace noodle{
                 for (auto i: g.resolve(current).sources) {
                     sources().push_back(i);
                 }
+                return true;
+            }
+            /// note: the role names "destinations" and "sources" are used in the forward
+            /// sense so in the backward sense their respective roles reverses
+            bool backward(graph& model, num_t learning_rate){
+                index_t inputs = resolve(model).inputs;
+                index_t outputs = resolve(model).outputs;
+                //print_dbg(inputs,outputs,get_activation(model).rows());
+                if(outputs > 0 && get_error(model).rows() > 0 && outputs != get_error(model).rows()){
+                    print_err("the required output vector size (outputs)",outputs,"does not match the given",get_error(model).rows());
+                    return false;
+                }
+                /// "destinations" are realy the sources of the backprop operation
+                if(resolve(model).destinations.size() > 1){
+                    resolve(model).bp_output = var_layer_bp(resolve(model).operation, get_errors(model), learning_rate);
+                }else{
+                    resolve(model).bp_output = var_layer_bp(resolve(model).operation, get_error(model),learning_rate);
+                }
+#if 0
+                if(outputs != resolve(model).output.rows()){
+                    print_err("output size (outputs)",outputs,"does not match the given",resolve(model).output.rows());
+                    return false;
+                }
+#endif
                 return true;
             }
         };
