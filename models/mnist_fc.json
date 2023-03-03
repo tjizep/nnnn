@@ -21,7 +21,7 @@
         "kind": "SPARSE_FC",
         "source": "D001",
         "outputs": 25,
-        "def": {"sparsity": 0.73}
+        "def": {"sparsity": 0.5}
       },
       {
         "name": "002",

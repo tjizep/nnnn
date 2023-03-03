@@ -421,7 +421,7 @@ namespace noodle {
             // result = weights.transpose() * error
             if (!valued_blocks.empty() && (block_size % 16) == 0 && actual_sparseness > opt_sparseness_threshold) {
                 result = vec_t::Zero(weights.cols(), 1);
-                for (auto e: valued_blocks) {
+                for (auto &e: valued_blocks) {
                     num_t mr = error(e.row, 0);
                     num_t *pr = &result(e.col, 0);
                     const num_t *pl = &weights(e.row, e.col);
