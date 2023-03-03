@@ -424,7 +424,7 @@ namespace noodle{
             bool backward(graph& model, num_t learning_rate){
                 index_t inputs = resolve(model).inputs;
                 index_t outputs = resolve(model).outputs;
-                //print_dbg(inputs,outputs,get_activation(model).rows());
+                print_dbg(inputs,outputs,get_error(model).rows(),resolve(model).name);
                 if(outputs > 0 && get_error(model).rows() > 0 && outputs != get_error(model).rows()){
                     print_err("the required output vector size (outputs)",outputs,"does not match the given",get_error(model).rows());
                     return false;

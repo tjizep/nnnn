@@ -58,20 +58,18 @@ namespace noodle {
         }
 
         static vec_t var_feed_forward(vec_t &a0, graph &model) {
-            vec_t activation = a0;
-            int at = 0;
-
             index_t l = 0;
             graph::forward_selector fwrd = model.first();
             if(!fwrd.ok(model)){
                 print_err("graph seems empty");
-                return activation;
+                return a0;
             }
             index_t last = fwrd.get();
-            fwrd.set_activation(model, activation);
+            fwrd.set_activation(model, a0);
             for (;fwrd.ok(model);fwrd.next(model)) {
-                //print_dbg("forward graph", activation.size(), l++);
-                fwrd.forward(model);
+                if(!fwrd.forward(model)){
+                    return a0;
+                }
                 last = fwrd.get();
             }
             return model.resolve(last).output;
