@@ -295,7 +295,7 @@ namespace noodle {
                 const num_t *pl = &l(0);
                 temp_r.resize(r.rows() + 16);
                 num_t *temp_a = &temp_r[0];
-                for (index_t i = 0; i < temp_r.size(); ++i) {
+                for (index_t i = 0; i < r.rows(); ++i) {
                     temp_a[i] = to_mul * r(i);
                 }
 
