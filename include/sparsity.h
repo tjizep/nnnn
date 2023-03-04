@@ -289,7 +289,7 @@ namespace noodle {
                 o = mat_t::Zero(l.rows(), r.rows());
             }
 
-            if (!valued_blocks.empty() && (block_size % 8) == 0 && actual_sparseness > opt_sparseness_threshold) {
+            if (l.size() > 0 && !valued_blocks.empty() && (block_size % 8) == 0 && actual_sparseness > opt_sparseness_threshold) {
 
                 array<num_t, block_size> old;
                 const num_t *pl = &l(0);
