@@ -376,7 +376,7 @@ namespace noodle {
         __attribute__((noinline))
         void vec_mul_assign(vec_t &o, const mat_t &l, const vec_t &r) {
 
-            if (!valued_blocks.empty() && (block_size % 8) == 0 && actual_sparseness > 0.3) {
+            if (!valued_blocks.empty() && (block_size % 8) == 0 && actual_sparseness > 0.2) {
                 o.resize(l.rows(), 1);
                 o.setZero(); /// because its assign not update
                 const num_t *pr = &r(0, 0);
@@ -424,11 +424,10 @@ namespace noodle {
                 for (auto &e: valued_blocks) {
                     num_t mr = error(e.row, 0);
                     num_t *pr = &result(e.col, 0);
-                    const num_t *pl = &weights(e.row, e.col);
                     if (e.size == block_size) {
-                        vec_mad_f32_n<block_size>(pr, pl, mr);// << auto loop unrolled version
+                        vec_mad_f32_n<block_size>(pr, e.data.data(), mr);// << auto loop unrolled version
                     } else
-                        vec_mad_f32(e.size, pr, pl, mr);
+                        vec_mad_f32(e.size, pr, e.data.data(), mr);
                 }
             } else {
                 result = weights.transpose() * error;

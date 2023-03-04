@@ -54,11 +54,11 @@ namespace noodle {
 
             num_t mc;
             biases = vec_t::Random(out_size);
-            biases.array() /= biases.array().abs().maxCoeff();
+            //biases.array() /= biases.array().abs().maxCoeff();
             //biases.array() -= 0.5;
 
             weights = mat_t::Random(out_size, in_size);
-            weights.array() /= weights.array().abs().maxCoeff();
+            //weights.array() /= weights.array().abs().maxCoeff();
             //weights.array() -= 0.5;
             return true;
         }
@@ -155,8 +155,8 @@ namespace noodle {
             output = fc.output;
             momentum = 0;
             sparseness = fc.sparseness;
-            mini_batch_update_weights = fc.mini_batch_update_weights;
-            mini_batch_update_biases = fc.mini_batch_update_biases;
+            mini_batch_update_weights.array() = 0;// = fc.mini_batch_update_weights;
+            mini_batch_update_biases.array() = 0;// = fc.mini_batch_update_biases;
 
         }
 

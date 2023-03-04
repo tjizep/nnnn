@@ -30,7 +30,15 @@ namespace console {
         //return "__-__-__ __:__:__";
         return buffer.str();
     }
-    typedef std::variant<const std::string, int64_t ,size_t, unsigned int, int, long, double, float> _LogValue;
+
+    typedef std::variant<
+            const std::string,
+            int64_t ,size_t, unsigned int, int,
+#if 0
+            long,
+#endif
+            double, float> _LogValue;
+
     static bool inline is_string(const _LogValue& val){
         if(const std::string* s = std::get_if<const std::string>(&val)){
             return true;
@@ -48,9 +56,11 @@ namespace console {
         if(const std::string* s = std::get_if<const std::string>(&val)){
             return *s;
         }
+#if 0
         if(const long*  l= std::get_if<long>(&val)){
             return std::to_string(*l);
         }
+#endif
         if(const int*  i= std::get_if<int>(&val)){
             return std::to_string(*i);
         }
