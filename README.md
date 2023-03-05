@@ -21,3 +21,19 @@ This is achieved in the following ways
 * Block sparsity is gradually added during the first few epochs which then also reduces forward multiplies
 
 Note: the 'main' branch is currently being developed
+
+# Build and Run
+
+To build on replit and other *nix's
+
+* (open console/shell)
+* git submodule init
+* git submodule update
+* mkdir bld
+* cd bld
+* cmake ..
+* make
+* ./nnnn
+
+You can then change some of the parameters in the 'models/mnist_fc.json'
+it's also easy to make changes to the sources itself
