@@ -35,5 +35,18 @@ To build on replit and other *nix's
 * make
 * ./nnnn
 
+output like this is expected
+
+```
+...
+[INF][2023-03-04 14:44:25][stochastic_gradient_descent] Completing Epoch 16 . complete  100 %
+[INF][2023-03-04 14:44:25][stochastic_gradient_descent] estimated acc.:  0.931667
+[INF][2023-03-04 14:44:25][stochastic_gradient_descent] last epoch duration: 0.566954 s, lr: 0.007835
+[INF][2023-03-04 14:44:26][stochastic_gradient_descent] Best Epoch 9
+...
+```
+
 You can then change some of the parameters in the 'models/mnist_fc.json'
 it's also easy to make changes to the sources itself
+
+
