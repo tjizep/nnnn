@@ -12,6 +12,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <list>
+#include <message.h>
 
 namespace noodle {
     using namespace std;
@@ -198,6 +199,14 @@ namespace noodle {
         string get_name() const {
             return impl.name;
         }
+
+         bool get_message(message& r) const {
+            r.kind = impl.name;
+            if constexpr (has_member(V, get_message(r))) {
+                impl.get_message(r);
+            }
+            return true;
+        }
     };
 
     class layer_holder;
@@ -207,6 +216,7 @@ namespace noodle {
             model_member<fc_layer>,
             model_member<sigmoid_layer>,
             model_member<low_sigmoid_layer>,
+            model_member<swish_layer>,
             model_member<tanh_layer>,
             model_member<relu_layer>,
             model_member<soft_max_layer>,
@@ -388,6 +398,12 @@ namespace noodle {
     string var_get_name(const layer &v) {
         return std::visit([](auto &&arg) -> string {
             return arg.get_name();
+        }, v);
+    }
+
+    bool var_get_message(message& m, const layer& v){
+        return std::visit([&](auto &&arg) -> bool {
+            return arg.get_message(m);
         }, v);
     }
 

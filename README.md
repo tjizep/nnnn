@@ -27,13 +27,15 @@ Note: the 'main' branch is currently being developed
 To build on replit and other *nix's
 
 * (open console/shell)
+* git clone https://github.com/tjizep/nnnn.git
+* cd nnnn
 * git submodule init
 * git submodule update
 * mkdir bld
 * cd bld
 * cmake ..
 * make
-* ./nnnn
+* ./nnnn ../models/mnist_fc.json
 
 output like this is expected
 

@@ -176,6 +176,13 @@ namespace noodle{
             oper = noodle::sigmoid_layer{};
             g.resolve(nix).outputs = inputs; /// by default output size = inputsize ?
         }
+        if(l_kind == "SWISH"){
+            num_t beta = 1;
+            if(l_def.contains("beta"))
+                beta = l_def["beta"];
+            oper = noodle::swish_layer{beta};
+            g.resolve(nix).outputs = inputs; /// by default output size = inputsize ?
+        }
 
         if(l_kind == "FLAT_SIGMOID"){
             num_t flatness = 0.35;
@@ -206,10 +213,19 @@ namespace noodle{
         return true;
     }
 
+    void save_messages(graph& g){
+        json output;
+        output.push_back("data");
+        for(auto & n: g){
+            message m;
+            var_get_message(m, n.operation);
+            m.name = n.name;
+        }
+    }
+
     bool json_ensemble_2varlayers(graph& g, VarLayers& layers, const json& l){
         if(!validate(l, {"def", "kind"}))
             return false;
-        ;
         auto l_def = l["def"];
         auto l_kind = l["kind"];
         layer oper = noodle::empty_layer{};
@@ -268,6 +284,7 @@ namespace noodle{
             mnist_loader loader;
             loader.load(ts, data["def"]);
         }else{
+            fatal_err("unrecognised kind of data",(string)data_kind);
             return false;
         }
 
@@ -302,7 +319,7 @@ namespace noodle{
             noodle::trainer n(ts, mini_batch_size, learning_rate);
 
            // n.stochastic_gradient_descent(physical, epochs, threads, 75);
-            n.stochastic_gradient_descent(g, epochs, threads, 75);
+            n.stochastic_gradient_descent(g, epochs, threads, 0);
 
         }
         return true;

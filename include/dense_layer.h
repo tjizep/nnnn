@@ -6,7 +6,7 @@
 #define NNNN_DENSE_LAYER_H
 
 #include <basics.h>
-
+#include <message.h>
 #include <sparsity.h>
 #include <activations.h>
 
@@ -61,6 +61,41 @@ namespace noodle {
             //weights.array() /= weights.array().abs().maxCoeff();
             //weights.array() -= 0.5;
             return true;
+        }
+
+        void get_message(message& m) const {
+            m.data["weights"] = this->weights;
+            m.data["biases"] = this->biases;
+            m.kind = name;
+        }
+
+        void put_message(const message& m)  {
+
+            if(m.kind != name){
+                fatal_err("invalid 'kind'");
+            }
+
+            if(!m.data.contains("weights")) {
+                fatal_err("'weights' not found");
+            }
+
+            if(!m.data.contains("biases")){
+                fatal_err("'biases' not found");
+            }
+
+            v_data_t vw = m.data.at("weights");
+            if(const mat_t* w= std::get_if<mat_t>(&vw)){
+                this->weights = *w;
+            }else{
+                fatal_err("invalid 'weights'");
+            }
+
+            v_data_t vb = m.data.at("biases");
+            if(const mat_t* w= std::get_if<mat_t>(&vb)){
+                this->weights = *w;
+            }else{
+                fatal_err("invalid 'biases' found");
+            }
         }
 
         vec_t forward(const vec_t &io) {

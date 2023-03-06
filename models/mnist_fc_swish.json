@@ -20,32 +20,32 @@
       { "name":"001",
         "kind": "SPARSE_FC",
         "source": "D001",
-        "outputs": 25,
+        "outputs": 50,
         "def": {"sparsity": 0}
       },
       {
         "name": "002",
-        "kind": "LRELU",
+        "kind": "SWISH",
         "source": "001",
-        "def": {"leakiness": 50}
+        "def": {"beta": 0.1}
       },
       { "name":"003",
         "kind": "SPARSE_FC",
         "source": "002",
-        "outputs": 25,
+        "outputs": 50,
         "def": {"sparsity": 0}
       },
       {
         "name": "004",
-        "kind": "LRELU",
+        "kind": "SWISH",
         "source": "003",
-        "def": {"leakiness": 50}
+        "def": {"beta": 0.1}
       },
       {
         "name": "007",
         "kind": "DROPOUT",
         "source": "004",
-        "def": {"rate": 0}
+        "def": {"rate": 0.1}
       },
       { "name":"008",
         "kind": "SPARSE_FC",
@@ -64,10 +64,10 @@
       "mnist_good": {
         "kind": "SGD",
         "def": {
-          "epochs": 17,
+          "epochs": 20,
           "mini_batch_size": 24,
-          "threads": 8,
-          "learning_rates": [0.009, 0.008],
+          "threads": 4,
+          "learning_rates": [0.009, 0.001],
           "save_schedule": [0.7,0.8,0.95,0.98]
         }
       }

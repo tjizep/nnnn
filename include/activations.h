@@ -25,6 +25,23 @@ namespace noodle {
         }
     };
 
+    struct swish {
+        num_t beta = 1;
+        sigmoid s;
+        swish(num_t b) : beta(b){}
+        num_t operator()(num_t x) const {
+            return x * s(beta * x);
+        }
+    };
+
+    struct swish_derivative {
+        num_t beta = 1;
+        swish_derivative(num_t b) : beta(b){}
+        num_t operator()(num_t x) const {
+            return (exp(-x)*(x + 1) + 1)/pow((1+exp(-x)),2);
+        }
+    };
+
     struct low_sigmoid {
         num_t flatness = 0.77;
 
@@ -98,6 +115,39 @@ namespace noodle {
         vec_t bp(const vec_t &output_error, num_t /*learning_rate*/) {
             assert(output_error.size() > 0);
             vec_t cd = output.unaryExpr(sigmoid_derivative{});
+            //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.size() << " err " << output_error.norm() << " cder " << cd.norm() << endl;
+            assert(output.rows() == input.rows());
+            vec_t result = output_error.cwiseProduct(cd);
+            return result;
+        }
+    };
+    struct swish_layer : public abstract_layer {
+        vec_t input = row_vector();
+        vec_t output = row_vector();
+        num_t beta = 1;
+
+        swish_layer(num_t beta) : abstract_layer("SWISH"), beta(beta) {}
+        swish_layer() : abstract_layer("SWISH") {}
+
+        const vec_t &get_input() const {
+            return input;
+        }
+
+        vec_t &get_input() {
+            return input;
+        }
+
+        vec_t forward(const vec_t &io) {
+            assert(io.size() > 0);
+            input = io;
+            //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.rows() << " input " << input.norm() << endl;
+            output = io.unaryExpr(swish{beta});
+            return output;
+        }
+
+        vec_t bp(const vec_t &output_error, num_t /*learning_rate*/) {
+            assert(output_error.size() > 0);
+            vec_t cd = output.unaryExpr(swish_derivative{beta});
             //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.size() << " err " << output_error.norm() << " cder " << cd.norm() << endl;
             assert(output.rows() == input.rows());
             vec_t result = output_error.cwiseProduct(cd);

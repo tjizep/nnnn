@@ -195,7 +195,7 @@ namespace noodle {
                         } else {
                             losing_streak--;
                         }
-                    } else if (losing_streak <= 0) {
+                    } else if (max_streak > 0 && losing_streak <= 0) {
                         break;
                     } else {
                         losing_streak--;

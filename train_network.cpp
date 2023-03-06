@@ -11,8 +11,10 @@ int main(int argc, char *argv[]) {
 #else
     print_inf("'Eigen' Vectorization is disabled");
 #endif
-    noodle::load_model_from_json("../models/mnist_fc.json");
+    if(argc > 1 && argv[1]){
+        print_inf("model file",argv[1]);
+        noodle::load_model_from_json(argv[1]);
+    }
 
-
-    return 0;
+    return -1;
 }
