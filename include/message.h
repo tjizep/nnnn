@@ -8,7 +8,7 @@
 namespace noodle{
     using namespace std;
     using namespace Eigen;
-    typedef variant<vec_t, mat_t> v_data_t;
+    typedef variant<vec_t, mat_t, num_t, index_t, string> v_data_t;
     struct message{
         string name;
         string kind;

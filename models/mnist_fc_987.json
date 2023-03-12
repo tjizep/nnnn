@@ -6,9 +6,9 @@
       "kind": "mnist",
       "name" : "D001",
       "source": null,
-      "outputs": 180,
+      "outputs": 320,
       "def": {
-        "scale": 180,
+        "scale": 320,
         "path": "../data/mnist/",
         "test_label_path": "t10k-labels-idx1-ubyte",
         "train_label_path": "train-labels-idx1-ubyte",
@@ -20,8 +20,8 @@
       { "name":"001",
         "kind": "SPARSE_FC",
         "source": "D001",
-        "outputs": 50,
-        "def": {"sparsity": 0, "greediness": 1.1}
+        "outputs": 280,
+        "def": {"sparsity": 0}
       },
       {
         "name": "001.1",
@@ -32,7 +32,7 @@
       { "name":"002",
         "kind": "SPARSE_FC",
         "source": "001.1",
-        "outputs": 25,
+        "outputs": 120,
         "def": {"sparsity": 0}
       },
       {
@@ -44,7 +44,7 @@
       { "name":"003",
         "kind": "SPARSE_FC",
         "source": "002.1",
-        "outputs": 25,
+        "outputs": 50,
         "def": {"sparsity": 0}
       },
       {
@@ -77,8 +77,8 @@
         "kind": "SGD",
         "def": {
           "epochs": 17,
-          "mini_batch_size": 11,
-          "threads": 8,
+          "mini_batch_size": 24,
+          "threads": 4,
           "learning_rates": [0.009, 0.0001],
           "save_schedule": [0.7,0.8,0.95,0.98]
         }

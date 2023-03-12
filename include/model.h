@@ -93,14 +93,6 @@ namespace noodle {
             return row_vector();
         }
 
-        void set_depth(uint32_t d) {
-            depth = d;
-        }
-
-        uint32_t get_depth() const {
-            return depth;
-        }
-
         /**
          * optional function
          * @param mini_batch_size
@@ -200,7 +192,20 @@ namespace noodle {
             return impl.name;
         }
 
-         bool get_message(message& r) const {
+        bool put_message(const message& r) {
+
+            if(r.kind != impl.name){
+                fatal_err("data name",r.kind,"does not match item name",impl.name);
+                return false;
+            }
+
+            if constexpr (has_member(V, put_message(r))) {
+                impl.put_message(r);
+            }
+            return true;
+        }
+
+        bool get_message(message& r) const {
             r.kind = impl.name;
             if constexpr (has_member(V, get_message(r))) {
                 impl.get_message(r);
@@ -404,6 +409,11 @@ namespace noodle {
     bool var_get_message(message& m, const layer& v){
         return std::visit([&](auto &&arg) -> bool {
             return arg.get_message(m);
+        }, v);
+    }
+    bool var_put_message(layer& v, const message& m){
+        return std::visit([&](auto &&arg) -> bool {
+            return arg.put_message(m);
         }, v);
     }
 
