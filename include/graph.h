@@ -166,7 +166,7 @@ namespace noodle{
         }
 
         index_t add(const node &n) {
-            print_inf("last_added",last_added);
+            print_dbg("last_added",last_added);
             auto i = index.find(n.name);
             index_t x = null_node;
             if (i == index.end()) {
@@ -191,7 +191,7 @@ namespace noodle{
             }
             at(x).index = x;
             last_added = x;
-            print_inf("added ",at(x).name);
+            print_dbg("added ",at(x).name);
             return x;
         }
         node& at(index_t ix){
