@@ -79,6 +79,7 @@ namespace noodle{
         node empty;
         Nodes nodes;
         NameIndex index;
+        index_t last_added = null_node;
         void update_layers(graph &dest) const  {
             auto isource = nodes.begin();
             auto idest = dest.nodes.begin();
@@ -165,8 +166,9 @@ namespace noodle{
         }
 
         index_t add(const node &n) {
+            print_inf("last_added",last_added);
             auto i = index.find(n.name);
-            index_t x;
+            index_t x = null_node;
             if (i == index.end()) {
                 x = nodes.size();
                 nodes.push_back(n);
@@ -175,10 +177,33 @@ namespace noodle{
                 x = i->second;
                 nodes[x] = n;
             }
-            nodes[x].index = x;
+
+            if(x==null_node) fatal_err(x,"is not a valid index");
+
+            if(last_added != null_node){
+                if(at(x).source.empty()){
+                    at(x).source.push_back(at(last_added).name);
+                }
+            }
+            // POST: the node should always have at least 1 source
+            if(x > 0 && at(x).source.empty()){
+                fatal_err("non root node",at(x).name,"has no source names");
+            }
+            at(x).index = x;
+            last_added = x;
+            print_inf("added ",at(x).name);
             return x;
         }
-
+        node& at(index_t ix){
+            if (ix >= 0 && ix < nodes.size()) return nodes[ix];
+            fatal_err("node",ix,"not found");
+            return empty;
+        }
+        const node& at(index_t ix) const {
+            if (ix >= 0 && ix < nodes.size()) return nodes[ix];
+            fatal_err("node",ix,"not found");
+            return empty;
+        }
         node &resolve(index_t ix) {
             if (ix >= 0 && ix < nodes.size()) return nodes[ix];
             return empty;
@@ -237,8 +262,17 @@ namespace noodle{
             return index.end();
         }
 
-        uint32_t find_outputs(const std::string name) const {
-            return find_outputs(index.find(name));
+        uint32_t find_outputs_by_source(const node& n) const {
+            if(n.source.empty()){
+                fatal_err(n.name,"has no source(s)");
+                return 0;
+            }
+            string source = *n.source.begin();
+            return find_outputs(index.find(source));
+        }
+
+        uint32_t find_outputs(const node& n) const {
+            return find_outputs(index.find(n.name));
         }
 
         uint32_t find_outputs(NameIndex::const_iterator is, NameSet names = {}) const {

@@ -19,56 +19,47 @@
     "layers": [
       { "name":"001",
         "kind": "SPARSE_FC",
-        "source": "D001",
         "outputs": 50,
         "def": {"sparsity": 0, "greediness": 1.1}
       },
       {
         "name": "001.1",
         "kind": "LRELU",
-        "source": "001",
         "def": {"leakiness": 50}
       },
       { "name":"002",
         "kind": "SPARSE_FC",
-        "source": "001.1",
-        "outputs": 25,
+        "outputs": 50,
         "def": {"sparsity": 0}
       },
       {
         "name": "002.1",
         "kind": "LRELU",
-        "source": "002",
         "def": {"leakiness": 50}
       },
       { "name":"003",
         "kind": "SPARSE_FC",
-        "source": "002.1",
-        "outputs": 25,
+        "outputs": 50,
         "def": {"sparsity": 0}
       },
       {
         "name": "003.1",
         "kind": "LRELU",
-        "source": "003",
         "def": {"leakiness": 50}
       },
       {
         "name": "004",
         "kind": "DROPOUT",
-        "source": "003.1",
         "def": {"rate": 0}
       },
       { "name":"005",
         "kind": "SPARSE_FC",
-        "source": "004",
         "outputs": 10,
         "def": {"sparsity": 0}
       },
       {
         "name": "009",
         "kind": "SOFTMAX",
-        "source": "005",
         "def": { }
       }
     ],
@@ -77,7 +68,7 @@
         "kind": "SGD",
         "def": {
           "epochs": 17,
-          "mini_batch_size": 11,
+          "mini_batch_size": 24,
           "threads": 8,
           "learning_rates": [0.009, 0.0001],
           "save_schedule": [0.7,0.8,0.95,0.98]
