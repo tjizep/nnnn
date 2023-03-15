@@ -15,18 +15,15 @@ namespace noodle {
     using namespace Eigen;
     using namespace std;
     using json = nlohmann::json;
-    message load_message(json& j){
-        message r;
-
-        return r;
-    }
     template<typename t2d>
-    void load(t2d& mat, json& j){
+    void mat_load(t2d& mat, json& j){
         index_t rows = j.size();
         index_t cols = 0;
         if(rows > 0){
             cols = j[0].size();
         }
+
+        print_dbg("loading",rows,cols);
         mat.resize(rows,cols);
         for(index_t row = 0;row < mat.rows();++row){
             for(index_t col = 0;col < mat.cols();++col){
@@ -38,30 +35,82 @@ namespace noodle {
             }
         }
     }
+    message load_message(json& j){
+        message r;
+        r.kind =  j["kind"];
+        r.name = j["name"];
+        if(r.kind.empty()||r.name.empty()){
+            fatal_err("name or kind not specified");
+            return r;
+        }
+        json val = j["values"];
+        if(val.empty()){
+            //fatal_err("empty values");
+            return r;
+        }
+        print_dbg("loading values for",r.kind,r.name);
+        for(auto& v: val.items()){
+            string name = v.key();
+            if(v.value().is_object()){
+                print_wrn("unexpected object found");
+                continue;
+            }
+            if(v.value().is_string()){
+                r.data[name] = (string)v.value();
+            }
+            if(v.value().is_number()){
+                r.data[name] = (num_t)v.value();
+            }
+            if(v.value().is_array()){
+                print_dbg("name",qt(name),"size",v.value().size());
+                if(v.value().empty()){
+                    print_wrn("empty value");
+                    continue;
+                }
+                if(v.value()[0].size()==1){
+                    vec_t dest;
+                    mat_load(dest, v.value());
+                    r.data[name] = dest;
+                }else{
+                    mat_t dest;
+                    mat_load(dest, v.value());
+                    r.data[name] = dest;
+                }
+            }
+        }
+        return r;
+    }
+
     template<typename t2d>
     void write(json& j, const t2d& mat){
         for(index_t row = 0;row < mat.rows();++row){
             json jr;
+            num_t rounding = 1e4;
             for(index_t col = 0;col < mat.cols();++col){
-                jr.push_back((num_t)(mat(row,col)));
+                jr.push_back(::round(mat(row,col)*rounding)/rounding);
             }
             j.push_back(jr);
         }
+        print_dbg("saving mat/vec",mat.rows(),mat.cols());
     }
     json write_message(message& m){
         json mj;
-        print_dbg("creating json message",m.kind,m.name);
+        print_dbg("creating json message",qt(m.kind),qt(m.name));
         mj["kind"] = m.kind;
         mj["name"] = m.name;
         json val;
         for(auto& d: m.data){
+            print_dbg("saving",qt(d.first));
             if(const index_t*  i= std::get_if<index_t>(&d.second)){
+                print_dbg("saving index_t",*i);
                 val[d.first] = *i;
             }
             if(const string*  s= std::get_if<string>(&d.second)){
+                print_dbg("saving index_t",*s);
                 val[d.first] = *s;
             }
             if(const num_t*  n= std::get_if<num_t>(&d.second)){
+                print_dbg("saving index_t",*n);
                 val[d.first] = *n;
             }
             if(const vec_t*  v= std::get_if<vec_t>(&d.second)){
@@ -86,7 +135,7 @@ namespace noodle {
         mj["values"] = val;
         return m;
     }
-    void load_messages(string path, json& j, graph& g){
+    void load_messages(graph& g, string path){
         std::ifstream f(path);
         if (!f) {
             /// this is ok
@@ -130,6 +179,7 @@ namespace noodle {
         }
         json output;
         json data_array;
+        print_dbg("saving",g.nodes.size(),"nodes");
         for(auto & n: g){
             message m;
             var_get_message(m, n.operation);
@@ -139,6 +189,8 @@ namespace noodle {
         output["data"] = data_array;
         print_inf("writing",path);
         f << output;
+        f.flush();
+
     }
 
 }

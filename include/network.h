@@ -106,11 +106,21 @@ namespace noodle {
                 --lix;
             }
         }
+        enum{
+            TRAIN = 0,
+            TEST = 1,
+            BOTH
+        };
         template<typename ModelType>
         ModelType
         stochastic_gradient_descent(ModelType &model, uint32_t epochs, size_t shards = 1, num_t max_streak = 3) {
             ModelType best_model;
             array<num_t, 2> model_perf, best_perf;
+            best_perf = {0,0};
+            model_perf = {0,0};
+            /// NB: we can never use model_perf[0] or best_perf[0]
+            /// because then we are using test accuracy during training
+
             size_t best_epoch = 0;
             bool save_best = true;
             std::random_device rd;
@@ -181,17 +191,18 @@ namespace noodle {
                 std::chrono::duration<float> diff = epoch_time_end - epoch_timer;
                 print_inf("Completing Epoch",e,". complete ",
                      100 * ix / total, "%");
-                print_inf("estimated acc.: ",best_perf[1]);
+                print_inf("estimated acc.:",best_perf[TEST]);
                 print_inf("last epoch duration:",diff.count(),"s, lr:",lr);
                 if (((num_t) ix / (num_t) total) > 0.06) {
-                    model_perf = evaluate(model, 0.15);
-                    if (model_perf[1] > best_perf[1]) {
-                        model_perf = evaluate(model, .3);
-                        if (model_perf[1] > best_perf[1]) {
+                    model_perf = evaluate(model, 0.15, TEST);
+                    if (model_perf[TEST] > best_perf[TEST]) {
+                        model_perf = evaluate(model, .3, TEST);
+                        if (model_perf[TEST] > best_perf[TEST]) {
                             losing_streak = max_streak;
                             best_model = model;
                             best_perf = model_perf;
                             best_epoch = e + 1;
+
                         } else {
                             losing_streak--;
                         }
@@ -208,15 +219,20 @@ namespace noodle {
                 }
 
             }
-
-            model_perf = evaluate(model, 1);
-            if (model_perf[1] > best_perf[1]) {
+            if(best_model.empty()){
                 best_model = model;
-                best_perf = model_perf;
-                best_epoch = epochs;
+                best_perf = evaluate(best_model, 1, TEST);
+            }else{
+                model_perf = evaluate(model, 1, TEST);
+                best_perf = evaluate(best_model, 1, TEST);
+                if (model_perf[TEST] > best_perf[TEST]) {
+                    best_model = model;
+                    best_perf = model_perf;
+                    best_epoch = epochs;
+                }
             }
-            print_inf("Best Epoch",best_epoch);
-            print_accuracy(best_perf);
+            print_dbg("Best estimated Epoch",best_epoch);
+            //print_accuracy(best_perf);
 
             num_t total_vars = 0;
             num_t total_zeroes = 0;
@@ -365,8 +381,8 @@ namespace noodle {
 
         void print_accuracy(array<num_t, 2> result) {
 
-            print_inf("Accuracy: Train =", result[0] * 100,"%, ",
-            "Validation =", result[1] * 100, "%");
+            print_inf("Accuracy: Train =", result[TRAIN] * 100,"%, ",
+            "Validation =", result[TEST] * 100, "%");
         }
         /**
          * evaluate model stochastically
@@ -376,7 +392,7 @@ namespace noodle {
          */
         // stochastic evaluation
         template<typename ModelType>
-        array<num_t, 2> evaluate(ModelType &model, num_t fraction_ = 1) {
+        array<num_t, 2> evaluate(ModelType &model, num_t fraction_ = 1, index_t which = BOTH) {
             num_t fraction = abs(fraction_);
             if (fraction > 2) fraction = 1;
             std::random_device rd;
@@ -387,33 +403,40 @@ namespace noodle {
             size_t output;
             size_t train_output;
             var_set_training(model, false);
-            std::uniform_int_distribution<size_t> dis_t(0, data.training_outputs.size() - 1);
-            for (uint32_t i = 0; i < data.training_outputs.size() * fraction; i++) {
-                size_t o_index = dis_t(g);
-                vec_t vi = var_feed_forward(data.training_inputs[o_index], model);
-                //vec_t vi = var_get_input(get_layer(model.back()));
-                vi.maxCoeff(&output);
-                data.training_outputs[o_index].maxCoeff(&train_output);
-                if (output == train_output) {
-                    num_correct++;
+            if(which == TRAIN||which == BOTH) {
+                std::uniform_int_distribution<size_t> dis_t(0, data.training_outputs.size() - 1);
+                for (uint32_t i = 0; i < data.training_outputs.size() * fraction; i++) {
+                    size_t o_index = dis_t(g);
+                    vec_t vi = var_feed_forward(data.training_inputs[o_index], model);
+                    //vec_t vi = var_get_input(get_layer(model.back()));
+                    vi.maxCoeff(&output);
+                    data.training_outputs[o_index].maxCoeff(&train_output);
+                    if (output == train_output) {
+                        num_correct++;
+                    }
                 }
+                result[TRAIN] = (num_t) num_correct / (fraction * data.training_inputs.size());
+            }else{
+                result[TRAIN] = 0;
             }
 
             std::uniform_int_distribution<size_t> dis(0, data.test_inputs.size() - 1);
+            if(which==TEST||which==BOTH) {
 
-            result[0] = (num_t) num_correct / (fraction * data.training_inputs.size());
-            num_correct = 0;
-            for (uint32_t i = 0; i < data.test_labels.size() * fraction; i++) {
-                size_t sample_index = dis(g);
-                vec_t back = var_feed_forward(data.test_inputs[sample_index], model);
-                back.maxCoeff(&output);
-                if (output == data.test_labels[sample_index]) {
-                    num_correct++;
+                num_correct = 0;
+                for (uint32_t i = 0; i < data.test_labels.size() * fraction; i++) {
+                    size_t sample_index = dis(g);
+                    vec_t back = var_feed_forward(data.test_inputs[sample_index], model);
+                    back.maxCoeff(&output);
+                    if (output == data.test_labels[sample_index]) {
+                        num_correct++;
+                    }
                 }
+
+                result[TEST] = (num_t) num_correct / (fraction * data.test_labels.size());
+            }else{
+                result[TEST] = 0;
             }
-
-            result[1] = (num_t) num_correct / (fraction * data.test_labels.size());
-
             var_set_training(model, true);
             return result;
         }

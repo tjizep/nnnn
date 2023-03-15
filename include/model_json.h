@@ -46,10 +46,10 @@ namespace noodle{
     }
     bool validate_name(string name, size_t count,const json& j){
         if (!j.contains(name)) {
-            fatal_err("expected element", name, "not found");
+            fatal_err("expected element", qt(name), "not found");
             return false;
         } else if (j[name].size() < count) {
-            fatal_err("element", name, "has less than", count, "elements");
+            fatal_err("element", qt(name), "has less than", count, "elements");
             return false;
         }
         return true;
@@ -84,10 +84,12 @@ namespace noodle{
     struct mnist_loader{
         void load(training_set& ts, json& def){
 
-            int32_t image_size = def["scale"];
+            index_t image_size = def["scale"];
 
-            if(image_size <= 0)
-                return;
+            if(image_size <= 0){
+                fatal_err("invalid image size", image_size);
+            }
+
 
             string data_dir = def["path"];
             string test_label_path = def["test_label_path"];
@@ -242,7 +244,7 @@ namespace noodle{
         validate(def,
              R"(
                     {"model":
-                        ["name","type","layers","optimizer",
+                        ["name","kind",{"graph":["name", {"def":["nodes"]}]},"optimizer",
                             {"data":
                                 [{"kind":1}, {"name":1}, {"outputs":1}, {"def":["scale", "path", "test_label_path"]}]
                             }
@@ -252,14 +254,20 @@ namespace noodle{
         graph g;
 
         auto model_def = def["model"];
+
         auto optimizer_def = model_def["optimizer"];
-        auto layers = model_def["layers"];
+        auto model_graph = model_def["graph"];
+        auto graph_name = model_graph["name"];
+        auto model_graph_def = model_graph["def"];
+        auto model_nodes =  model_graph_def["nodes"];
         auto data = model_def["data"];
         auto data_kind = data["kind"];
         auto data_def = data["def"];
         auto data_dir = data_def["path"];
+        string persist = model_graph_def.contains("persist") ? model_graph_def["persist"] : "";
         node dn = from(data);
         string name = dn.name;
+
         g.add(dn);
 
         training_set ts;
@@ -273,12 +281,13 @@ namespace noodle{
         }
 
         VarLayers physical;
-        for(auto l : layers){
+        for(auto l : model_nodes){
             if(!json2varlayers(g, physical, l))
                 return false;
             // NOT yet, json_ensemble_2varlayers(physical, l);
         }
         print_dbg("physical.size()",physical.size());
+
         for(auto o : optimizer_def) {
             if (!validate(o, {"kind", "def"}))
                 return false;
@@ -299,12 +308,22 @@ namespace noodle{
             if (!g.build_destinations()){
                 return false;
             }
-
             noodle::trainer n(ts, mini_batch_size, learning_rate);
+            if(!persist.empty()){
+                print_inf("persisting to/from", qt(persist));
+                load_messages(g, persist);
+                auto curr_acc = n.evaluate(g,1.0);
+                n.print_accuracy(curr_acc);
+            }
+
 
            // n.stochastic_gradient_descent(physical, epochs, threads, 75);
-            auto best = n.stochastic_gradient_descent(g, epochs, threads, 0);
-            save_messages(best,"data.json");
+            graph best = n.stochastic_gradient_descent(g, epochs, threads, 0);
+            if(!persist.empty()) {
+                save_messages(best, persist);
+            }
+            auto curr_acc = n.evaluate(best,1.0);
+            n.print_accuracy(curr_acc);
         }
         return true;
     }

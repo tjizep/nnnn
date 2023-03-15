@@ -46,6 +46,9 @@ namespace noodle {
             void set_data(const num_t *d, index_t s) {
                 //memset(&data[0], 0, block_size);
                 memcpy(&data[0], d, s * sizeof(num_t));
+                for(auto& f: data) {
+                    //f = std::round(f*100.0f)/100.0f;
+                }
                 size = s;
 
             }

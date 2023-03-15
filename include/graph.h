@@ -76,10 +76,11 @@ namespace noodle{
         enum {
             null_node = -1
         };
-        node empty;
+        node empty_node;
         Nodes nodes;
         NameIndex index;
         index_t last_added = null_node;
+
         void update_layers(graph &dest) const  {
             auto isource = nodes.begin();
             auto idest = dest.nodes.begin();
@@ -156,7 +157,7 @@ namespace noodle{
 
 
         void clear() {
-            empty.clear();
+            empty_node.clear();
             nodes.clear();
             index.clear();
         }
@@ -197,21 +198,21 @@ namespace noodle{
         node& at(index_t ix){
             if (ix >= 0 && ix < nodes.size()) return nodes[ix];
             fatal_err("node",ix,"not found");
-            return empty;
+            return empty_node;
         }
         const node& at(index_t ix) const {
             if (ix >= 0 && ix < nodes.size()) return nodes[ix];
             fatal_err("node",ix,"not found");
-            return empty;
+            return empty_node;
         }
         node &resolve(index_t ix) {
             if (ix >= 0 && ix < nodes.size()) return nodes[ix];
-            return empty;
+            return empty_node;
         }
 
         const node &resolve(index_t ix) const {
             if (ix >= 0 && ix < nodes.size()) return nodes[ix];
-            return empty;
+            return empty_node;
         }
 
         node &resolve(const string &name) {
@@ -219,7 +220,7 @@ namespace noodle{
             if (i != index.end()) {
                 return resolve(i->second);
             }
-            return empty;
+            return empty_node;
         }
 
         const node &resolve(const string &name) const {
@@ -227,11 +228,11 @@ namespace noodle{
             if (i != index.end()) {
                 return resolve(i->second);
             }
-            return empty;
+            return empty_node;
         }
 
         bool is_empty(const node &n) {
-            return n.empty() || &n == &empty;
+            return n.empty() || &n == &empty_node;
         }
 
         bool validate_sources() const {
@@ -293,7 +294,7 @@ namespace noodle{
                 auto i = validate_source(l);
                 return find_outputs(i, names);
             }
-            print_inf("outputs", resolve(l).outputs, "for", resolve(l).name);
+            print_dbg("outputs", resolve(l).outputs, "for", resolve(l).name);
             return resolve(l).outputs;
         }
         struct base_selector{
@@ -504,6 +505,9 @@ namespace noodle{
         }
         iterator end(){
             return nodes.end();
+        }
+        bool empty() const {
+            return nodes.empty();
         }
 
         void initialize_operators(){

@@ -17,6 +17,7 @@ namespace noodle {
     struct fc_layer : public abstract_layer {
         uint32_t in_size = 0;
         uint32_t out_size = 0;
+        index_t rounding = 4;
         block_sparsity sparseness;
         num_t momentum = 0;
         vec_t biases = row_vector();
@@ -34,9 +35,9 @@ namespace noodle {
 
         fc_layer(uint32_t in_size, uint32_t out_size, num_t sparseness = 0, num_t sparsity_greed = 2.5, num_t momentum = 0) : abstract_layer(
                 "FULLY CONNECTED") {
-            print_inf("name", name);
-            print_inf("in_size",in_size);
-            print_inf("out_size",out_size);
+            print_dbg("name", name);
+            print_dbg("in_size",in_size);
+            print_dbg("out_size",out_size);
             this->in_size = in_size;
             this->out_size = out_size;
             this->momentum = momentum;
@@ -49,21 +50,27 @@ namespace noodle {
         const mat_t &get_weights() const {
             return weights;
         }
-
+        void round_(){
+            round(weights,rounding);
+            round(biases,rounding);
+        }
         bool initialize() {
 
             num_t mc;
-            biases = vec_t::Random(out_size);
+            if(biases.size()==0)
+                biases = vec_t::Random(out_size);
             //biases.array() /= biases.array().abs().maxCoeff();
             //biases.array() -= 0.5;
-
-            weights = mat_t::Random(out_size, in_size);
+            if(weights.size()==0)
+                weights = mat_t::Random(out_size, in_size);
             //weights.array() /= weights.array().abs().maxCoeff();
             //weights.array() -= 0.5;
+            round_();
             return true;
         }
 
         void get_message(message& m) const {
+
             m.data["weights"] = this->weights;
             m.data["biases"] = this->biases;
             m.kind = name;
@@ -83,16 +90,16 @@ namespace noodle {
                 fatal_err("'biases' not found");
             }
 
-            v_data_t vw = m.data.at("weights");
-            if(const mat_t* w= std::get_if<mat_t>(&vw)){
+            auto vw = m.data.find("weights");
+            if(const mat_t* w= std::get_if<mat_t>(&vw->second)){
                 this->weights = *w;
             }else{
                 fatal_err("invalid 'weights'");
             }
 
-            v_data_t vb = m.data.at("biases");
-            if(const mat_t* w= std::get_if<mat_t>(&vb)){
-                this->weights = *w;
+            auto vb = m.data.find("biases");
+            if(const vec_t* b= std::get_if<vec_t>(&vb->second)){
+                this->biases = *b;
             }else{
                 fatal_err("invalid 'biases' found");
             }
@@ -137,7 +144,6 @@ namespace noodle {
 
             weights += mini_batch_update_weights;
             biases += mini_batch_update_biases;
-
             if (sparseness.sparseness && train_percent > 0.05)
                 sparseness.reduce_weights(weights);
             if (momentum > 0) {
@@ -149,13 +155,16 @@ namespace noodle {
                 prev_weights_delta = mini_batch_update_weights;
                 prev_biases_delta = mini_batch_update_biases;
             }
+
+            round_();
+
             mini_batch_update_weights = matrix();
             mini_batch_update_biases = row_vector();
         }
 
         /***
          * called when shards need to update the origin model
-         * not thread safe so latches/locks should be takem
+         * not thread safe so latches/locks should be taken
          * @param fc the shard
          */
         void update_bp_from(const fc_layer &fc) {
@@ -192,6 +201,7 @@ namespace noodle {
             sparseness = fc.sparseness;
             mini_batch_update_weights.array() = 0;// = fc.mini_batch_update_weights;
             mini_batch_update_biases.array() = 0;// = fc.mini_batch_update_biases;
+            round_();
 
         }
 

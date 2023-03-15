@@ -48,6 +48,12 @@ namespace noodle {
         if (a.size() == 0) a = b;
         else a += b;
     }
+    template<typename bT>
+    static inline void round(bT& a, index_t places){
+        num_t fact = pow(10, places);
+        a.array() *= fact;
+        a.array() = a.array().round()/fact;
+    }
 
     static mat_t constant(const mat_t &original, num_t value) {
         return mat_t::Constant(original.rows(), original.cols(), value);
@@ -59,5 +65,9 @@ namespace noodle {
 
     static mat_t m_sqrt(const mat_t &original) {
         return original.cwiseSqrt();
+    }
+
+    inline string qt(const string& value){
+        return "'"+value+"'";
     }
 };

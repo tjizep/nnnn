@@ -1,7 +1,7 @@
 {
   "model": {
     "name":"mnist fully connected",
-    "type": "classification",
+    "kind": "classification",
     "data": {
       "kind": "mnist",
       "name" : "D001",
