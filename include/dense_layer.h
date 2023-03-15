@@ -17,7 +17,7 @@ namespace noodle {
     struct fc_layer : public abstract_layer {
         uint32_t in_size = 0;
         uint32_t out_size = 0;
-        index_t rounding = 4;
+        index_t rounding = 5;
         block_sparsity sparseness;
         num_t momentum = 0;
         vec_t biases = row_vector();

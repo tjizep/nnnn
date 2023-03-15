@@ -85,7 +85,7 @@ namespace noodle {
     void write(json& j, const t2d& mat){
         for(index_t row = 0;row < mat.rows();++row){
             json jr;
-            num_t rounding = 1e4;
+            num_t rounding = 1e6;
             for(index_t col = 0;col < mat.cols();++col){
                 jr.push_back(::round(mat(row,col)*rounding)/rounding);
             }

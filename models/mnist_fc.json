@@ -26,10 +26,10 @@
           {
             "name": "001",
             "kind": "SPARSE_FC",
-            "outputs": 25,
+            "outputs": 80,
             "def": {
-              "sparsity": 0.6,
-              "greediness": 1.1
+              "sparsity": 0.5,
+              "greediness": 5.01
             }
           },
           {
@@ -45,7 +45,7 @@
             "outputs": 25,
             "def": {
               "sparsity": 0,
-              "greediness": 1.001
+              "greediness": 5.01
             }
           },
           {

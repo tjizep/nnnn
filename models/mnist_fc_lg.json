@@ -1,10 +1,10 @@
 {
   "model": {
-    "name":"mnist fully connected",
+    "name": "mnist fully connected",
     "kind": "classification",
     "data": {
       "kind": "mnist",
-      "name" : "D001",
+      "name": "D001",
       "source": null,
       "outputs": 180,
       "def": {
@@ -16,71 +16,100 @@
         "train_data_path": "train-images-idx3-ubyte"
       }
     },
-    "layers": [
-      { "name":"001",
-        "kind": "SPARSE_FC",
-        "source": "D001",
-        "outputs": 25,
-        "def": {"sparsity": 0.63, "greediness": 1.01}
-      },
-      {
-        "name": "001.1",
-        "kind": "LRELU",
-        "source": "001",
-        "def": {"leakiness": 50}
-      },
-      { "name":"002",
-        "kind": "SPARSE_FC",
-        "source": "001.1",
-        "outputs": 25,
-        "def": {"sparsity": 0}
-      },
-      {
-        "name": "002.1",
-        "kind": "LRELU",
-        "source": "002",
-        "def": {"leakiness": 50}
-      },
-      { "name":"003",
-        "kind": "SPARSE_FC",
-        "source": "002.1",
-        "outputs": 25,
-        "def": {"sparsity": 0}
-      },
-      {
-        "name": "003.1",
-        "kind": "LRELU",
-        "source": "003",
-        "def": {"leakiness": 50}
-      },
-      {
-        "name": "004",
-        "kind": "DROPOUT",
-        "source": "003.1",
-        "def": {"rate": 0}
-      },
-      { "name":"005",
-        "kind": "SPARSE_FC",
-        "source": "004",
-        "outputs": 10,
-        "def": {"sparsity": 0}
-      },
-      {
-        "name": "009",
-        "kind": "SOFTMAX",
-        "source": "005",
-        "def": { }
+    "graph": {
+      "name": "G1",
+      "kind": "compute",
+      "def": {
+        "persist_": "../mnist_fc.data",
+
+        "nodes": [
+          {
+            "name": "001",
+            "kind": "SPARSE_FC",
+            "outputs": 120,
+            "def": {
+              "sparsity": 0.7,
+              "greediness": 5.01
+            }
+          },
+          {
+            "name": "001.1",
+            "kind": "LRELU",
+            "def": {
+              "leakiness": 50
+            }
+          },
+          {
+            "name": "002",
+            "kind": "SPARSE_FC",
+            "outputs": 25,
+            "def": {
+              "sparsity": 0,
+              "greediness": 1.001
+            }
+          },
+          {
+            "name": "002.1",
+            "kind": "LRELU",
+            "def": {
+              "leakiness": 50
+            }
+          },
+          {
+            "name": "003",
+            "kind": "SPARSE_FC",
+            "outputs": 25,
+            "def": {
+              "sparsity": 0
+            }
+          },
+          {
+            "name": "003.1",
+            "kind": "LRELU",
+            "def": {
+              "leakiness": 50
+            }
+          },
+          {
+            "name": "004",
+            "kind": "DROPOUT",
+            "def": {
+              "rate": 0
+            }
+          },
+          {
+            "name": "005",
+            "kind": "SPARSE_FC",
+            "outputs": 10,
+            "def": {
+              "sparsity": 0
+            }
+          },
+          {
+            "name": "009",
+            "kind": "SOFTMAX",
+            "def": {}
+          }
+        ]
       }
-    ],
+    },
     "optimizer": {
       "mnist_good": {
         "kind": "SGD",
         "def": {
-          "epochs": 17,
-          "mini_batch_size": 32,
+          "epochs": 24,
+          "mini_batch_size": 24,
           "threads": 8,
-          "learning_rates": [0.009, 0.0001],
-          "save_schedule": [0.7,0.8,0.95,0.98]
+          "learning_rates": [
+            0.009,
+            0.0001
+          ],
+          "save_schedule": [
+            0.7,
+            0.8,
+            0.95,
+            0.98
+          ]
         }
       }
     }
