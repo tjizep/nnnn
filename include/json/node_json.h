@@ -14,7 +14,7 @@ namespace noodle{
     using namespace Eigen;
     using namespace std;
     using json = nlohmann::json;
-    node from(const json& j){
+    static node from(const json& j){
         node n;
         if(j.contains("outputs") && j["outputs"].is_number_integer())
             n.outputs = j["outputs"];

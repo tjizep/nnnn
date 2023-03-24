@@ -13,7 +13,7 @@
 namespace noodle {
     using namespace std;
     using json = nlohmann::json;
-    bool validate_name(string name, size_t count,const json& j){
+    static bool validate_name(string name, size_t count,const json& j){
         if (!j.contains(name)) {
             fatal_err("expected element", qt(name), "not found");
             return false;
@@ -24,7 +24,7 @@ namespace noodle {
         return true;
     }
 
-    bool validate(const json & j, const json& spec, size_t lvl = 0){
+    static bool validate(const json & j, const json& spec, size_t lvl = 0){
 
         for(auto e: spec.items()){
             size_t count = 0;

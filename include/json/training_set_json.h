@@ -5,6 +5,8 @@
 #ifndef NNNN_TRAINING_SET_JSON_H
 #define NNNN_TRAINING_SET_JSON_H
 #include "message_json.h"
+#include "validate_json.h"
+
 namespace noodle{
     using namespace Eigen;
     using namespace std;
@@ -19,9 +21,9 @@ namespace noodle{
         return true;
     }
 
-    bool load_training_set(training_set& ts, string path){
+    static bool load_training_set(training_set& ts, string path, string format){
         vector<message> messages;
-        if(!load_messages(messages, path)){
+        if(!load_messages(messages, path, format)){
             return false;
         }
         if(messages.empty()){
@@ -142,13 +144,15 @@ namespace noodle{
         index_t columns = 0;
         index_t rows = 1;
     };
+    static void test_training_set(const training_set& ts, string path, string format = "json");
 
-
-    bool save_training_set(string path, training_set& ts, save_ts_options options = save_ts_options()){
+    static bool save_training_set(const json& def, const training_set& ts){
         if(ts.training_outputs.size() != ts.training_outputs.size()){
             fatal_err("training inputs are not the same as the outputs");
             return false;
         }
+        validate(def, {"path","format"});
+        string path = def["path"];
         print_inf("saving train data to",path);
         vector<message> messages;
         index_t counter = 0;
@@ -189,8 +193,55 @@ namespace noodle{
             ++counter;
             messages.push_back(test);
         }
+        auto format = def["format"];
+        if(format.is_array()){
+            for(auto &f : format.items()){
+                if(f.value().is_string()){
+                    string sformat = f.value();
+                    if(!save_messages(messages, path, sformat)){
+                        return false;
+                    }
+                    test_training_set(ts, path, sformat);
+                }else{
+                    fatal_err("invalid training set export format");
+                    return false;
+                }
+            }
+        }else if (format.is_string()){
+            string sformat = format;
+            if(!save_messages(messages, path, sformat)){
+                return false;
+            }
+            test_training_set(ts, path, sformat);
+        }else{
+            fatal_err("invalid training set export format");
+            return false;
+        }
 
-        return save_messages(messages, path);
+        return true;
+    }
+    static void test_training_set(const training_set& ts, string path, string format){
+        print_inf("training set test",qt(path),qt(format));
+        training_set ts_test;
+        load_training_set(ts_test, path, format);
+        if(ts_test.training_inputs.size() != ts.training_inputs.size()){
+            fatal_err("training set training_inputs",ts_test.training_inputs.size(), ts.training_inputs.size());
+        }
+        if(ts_test.training_outputs.size() != ts.training_outputs.size()){
+            fatal_err("training set training_outputs",ts_test.training_outputs.size(), ts.training_outputs.size());
+        }
+        if(ts_test.training_labels.size() != ts.training_labels.size()){
+            fatal_err("training set training_labels",ts_test.training_labels.size(), ts.training_labels.size());
+        }
+        if(ts_test.test_inputs.size() != ts.test_inputs.size()){
+            fatal_err("training set test_inputs",ts_test.test_inputs.size(), ts.test_inputs.size());
+        }
+        if(ts_test.test_outputs.size() != ts.test_outputs.size()){
+            fatal_err("training set test_outputs",ts_test.test_outputs.size(), ts.test_outputs.size());
+        }
+        if(ts_test.test_labels.size() != ts.test_labels.size()){
+            fatal_err("training set test_labels",ts_test.test_labels.size(), ts.test_labels.size());
+        }
     }
 }
 #endif //NNNN_TRAINING_SET_JSON_H

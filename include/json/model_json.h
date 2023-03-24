@@ -20,11 +20,11 @@ namespace noodle{
     using namespace std;
     using json = nlohmann::json;
 
-    bool is_spec_card(const json& s){
+    static bool is_spec_card(const json& s){
         return s.is_number_integer();
     }
 
-    bool is_spec_child(const json& s){
+    static bool is_spec_child(const json& s){
         return s.is_array();
     }
 
@@ -52,7 +52,7 @@ namespace noodle{
         }
     };
 
-    bool json2varlayers(graph & g, const json& l){
+    static bool json2varlayers(graph & g, const json& l){
         if(!validate(l, {"def", "kind", "name"}))
             return false;
         if(!l["name"].is_string()){
@@ -221,37 +221,16 @@ namespace noodle{
             mnist_loader loader;
             loader.load(ts, data["def"]);
             if(data_def.contains("export")){
-                string exp = data_def["export"];
+                json exp = data_def["export"];
                 save_training_set(exp, ts);
-                training_set ts_test;
-                load_training_set(ts_test, exp);
-                if(ts_test.training_inputs.size() != ts.training_inputs.size()){
-                    fatal_err("training set training_inputs",ts_test.training_inputs.size(), ts.training_inputs.size());
-                }
-                if(ts_test.training_outputs.size() != ts.training_outputs.size()){
-                    fatal_err("training set training_outputs",ts_test.training_outputs.size(), ts.training_outputs.size());
-                }
-                if(ts_test.training_labels.size() != ts.training_labels.size()){
-                    fatal_err("training set training_labels",ts_test.training_labels.size(), ts.training_labels.size());
-                }
 
-                if(ts_test.test_inputs.size() != ts.test_inputs.size()){
-                    fatal_err("training set test_inputs",ts_test.test_inputs.size(), ts.test_inputs.size());
-                }
-                if(ts_test.test_outputs.size() != ts.test_outputs.size()){
-                    fatal_err("training set test_outputs",ts_test.test_outputs.size(), ts.test_outputs.size());
-                }
-                if(ts_test.test_labels.size() != ts.test_labels.size()){
-                    fatal_err("training set test_labels",ts_test.test_labels.size(), ts.test_labels.size());
-                }
 
             }
         } else if (data_kind == "JSON") {
 
-
             string path = data_dir;
 
-            if(load_training_set(ts, path)){
+            if(load_training_set(ts, path, "json")){
                 print_inf("loaded training set in",path,ts.training_inputs.size());
             }else{
                 print_wrn("loaded training set in",path,"failed");

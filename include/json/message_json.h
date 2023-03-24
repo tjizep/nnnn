@@ -22,7 +22,7 @@ namespace noodle {
     }
 
     template<typename t2d>
-    void write(json &j, const t2d &mat) {
+    static void write(json &j, const t2d &mat) {
         for (index_t col = 0; col < mat.cols(); ++col) {
             json jc;
             for (index_t row = 0; row < mat.rows(); ++row) {
@@ -38,7 +38,7 @@ namespace noodle {
     }
 
     template<typename t2d>
-    void mat_load(t2d &mat, json &j) {
+    static void mat_load(t2d &mat, json &j) {
         index_t cols = j.size();
         index_t rows = 0;
         if (cols > 0) {
@@ -61,7 +61,7 @@ namespace noodle {
         }
     }
 
-    message load_message(json &j) {
+    static message load_message(json &j) {
         message r;
         r.kind = j["kind"];
         r.name = j["name"];
@@ -111,7 +111,7 @@ namespace noodle {
         return r;
     }
 
-    json write_message(message &m) {
+    static json write_message(message &m) {
         json mj;
         print_dbg("creating json message", qt(m.kind), qt(m.name));
         mj["kind"] = m.kind;
@@ -141,17 +141,30 @@ namespace noodle {
         mj["values"] = val;
         return mj;
     }
+    static json from_file(ifstream& f, string format){
+        json content;
+        if(format == "json"){
+            content = json::parse(f);
+        }else if (format == "bson"){
+            content = json::from_bson(f);
+        }else if(format == "msgpack"){
+            content = json::from_msgpack(f);
+        }else{
+            fatal_err("unknown format",qt(format));
+        }
 
+        return content;
+    }
     template<typename TLoad>
-    bool load_messages(TLoad &&load_fn, string path) {
-        std::ifstream f(path);
+    static bool load_messages(TLoad &&load_fn, string path, string format = "json") {
+        std::ifstream f(path+"."+format);
         if (!f) {
             /// this is ok
             print_inf("data file", path, "not found");
             return false;
         }
 
-        json content = json::parse(f);
+        json content = from_file(f, format);
         json data = content["data"];
         if (data.empty()) {
             print_wrn("no data found");
@@ -173,15 +186,34 @@ namespace noodle {
         }
         return true;
     }
+    static bool save_to_file(ofstream & f, const json& output, string format){
+        if(!f){
+            fatal_err("io error: invalid file");
+            return false;
+        }
+        if(format == "json"){
+            f << output << std::endl;
+        }else if(format == "bson"){
+            json::to_bson(output, f);
+        }else if(format == "msgpack"){
+            json::to_msgpack(output, f);
+        }
 
-    bool load_messages(vector<message> &out, string path) {
+        f.flush();
+        if(!f){
+            fatal_err("io error: invalid file");
+            return false;
+        }
+        return true;
+    }
+    static bool load_messages(vector<message> &out, string path, string format = "json") {
         auto load_fn = [&out](const message &m) {
             out.push_back(m);
         };
-        return load_messages(load_fn, path);
+        return load_messages(load_fn, path, format);
     }
 
-    bool load_messages(graph &g, string path) {
+    static bool load_messages(graph &g, string path, string format = "json") {
         auto n = g.begin();
         auto load_fn = [&](const message &m) {
             if (n == g.end()) {
@@ -192,12 +224,12 @@ namespace noodle {
                 ++n;
             }
         };
-        return load_messages(load_fn, path);
+        return load_messages(load_fn, path, format);
     }
 
     /// could be done with a coroutine - ooh
-    bool save_messages(vector<message> &messages, string path) {
-        ofstream f(path);
+    static bool save_messages(vector<message> &messages, string path, string format = "json") {
+        ofstream f(path+"."+format);
         if (!f) {
             print_err("could not open file for writing", path);
             return false;
@@ -210,12 +242,11 @@ namespace noodle {
         }
         output["data"] = data_array;
         print_inf("writing", path);
-        f << output << std::endl;
-        f.flush();
+        save_to_file(f, output, format);
         return true;
     }
 
-    void save_messages(graph &g, string path) {
+    static void save_messages(graph &g, string path, string format = "json") {
         ofstream f(path);
         if (!f) {
             print_err("could not open file for writing", path);
@@ -232,8 +263,7 @@ namespace noodle {
         }
         output["data"] = data_array;
         print_inf("writing", path);
-        f << output;
-        f.flush();
+        save_to_file(f, output, format);
     }
 
 }

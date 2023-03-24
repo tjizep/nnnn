@@ -1,0 +1,35 @@
+{
+  "assemblies": [
+    {
+      "name": "R001",
+      "kind": "RNN",
+      "outputs": 100,
+      "inputs": [
+        100
+      ],
+      "def": {
+        "hidden": [
+          {
+            "name": "001",
+            "kind": "SPARSE_FC",
+            "outputs": 25,
+            "def": {
+              "sparsity": 0,
+              "greediness": 5.01
+            }
+          },
+          {
+            "name": "001.1",
+            "kind": "LRELU",
+            "def": {
+              "leakiness": 50
+            }
+          }
+        ],
+        "input": [],
+        "output": []
+      }
+    },
+    {}
+  ]
+}

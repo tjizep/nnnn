@@ -121,7 +121,7 @@ namespace mnist {
             for (auto p: log_hist) {
                 print_inf(p.first, p.second);
             }
-            print_inf(max_at);
+            print_dbg("max_at", max_at);
         } else {
             fatal_err("Failure reading image file:", path);
         }

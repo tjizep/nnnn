@@ -8,12 +8,15 @@
         "kind": "MNIST",
         "name": "D001",
         "source": null,
-        "enabled" : true,
+        "enabled": true,
         "outputs": 180,
         "def": {
           "scale": 180,
           "path": "../data/mnist/",
-          "export_": "../data/mnist-training-pairs.json",
+          "export_":{
+            "path": "../data/mnist-training-pairs",
+            "format":["json"]
+          },
           "test_label_path": "t10k-labels-idx1-ubyte",
           "train_label_path": "train-labels-idx1-ubyte",
           "test_data_path": "t10k-images-idx3-ubyte",

@@ -19,7 +19,7 @@ namespace noodle{
     using namespace Eigen;
     using namespace std;
     using json = nlohmann::json;
-    bool infer_from_json(json& model_def, json& model_def_name, graph& g){
+    static bool infer_from_json(json& model_def, json& model_def_name, graph& g){
         if(model_def.contains("inference")) {
             validate(model_def, R"({"inference":["kind","name",{"def":["input","output"]}]})"_json);
             auto inference = model_def["inference"];
