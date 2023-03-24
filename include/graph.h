@@ -16,6 +16,7 @@ namespace noodle{
         vector<string> source;
         vector<index_t> destinations;
         vector<index_t> sources;
+        bool enabled = true;
 
         /// results for forward operation
         vec_t activation = row_vector();
@@ -80,6 +81,7 @@ namespace noodle{
         Nodes nodes;
         NameIndex index;
         index_t last_added = null_node;
+
 
         void update_layers(graph &dest) const  {
             auto isource = nodes.begin();
@@ -508,6 +510,9 @@ namespace noodle{
         }
         bool empty() const {
             return nodes.empty();
+        }
+        size_t size() const {
+            return nodes.size();
         }
 
         void initialize_operators(){

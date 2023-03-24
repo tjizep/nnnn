@@ -17,11 +17,13 @@ namespace noodle {
     using namespace std;
     using namespace Eigen;
     struct training_set {
+        string name; /// something to ID this with
         vector<int> training_labels;
         vector<noodle::vec_t> training_inputs ;
         vector<noodle::vec_t> training_outputs ;
         vector<int> test_labels ;
         vector<noodle::vec_t> test_inputs;
+        vector<noodle::vec_t> test_outputs;
         int32_t data_size;
     };
 
@@ -38,11 +40,11 @@ namespace noodle {
     public:
 
 
-        trainer(training_set &data, num_t mini_batch_size, std::array<num_t, 2> learning_rate) {
+        trainer(const training_set &data, num_t mini_batch_size, std::array<num_t, 2> learning_rate) {
             auto prev = 0;
             this->data = data;
             mini_batch_size_ = mini_batch_size;
-            learning_rate_ = learning_rate;
+            learning_rate_ = std::move(learning_rate);
         }
 
         static vec_t var_feed_forward(vec_t &a0, VarLayers &model) {

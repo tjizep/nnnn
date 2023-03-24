@@ -26,6 +26,14 @@ namespace noodle {
     typedef Matrix<num_t, Dynamic, Dynamic, RowMajor> mat_t;//MatrixXf
     typedef SparseMatrix<num_t> sparse_mat_t;
 
+    float nround(float n, float precision){
+        return std::roundf(n*precision)/precision;
+    }
+
+    double nround(double n, double precision){
+        return std::round(n*precision)/precision;
+    }
+
     static inline vec_t row_vector() { return vec_t::Constant(0, 0); }
 
     static inline mat_t matrix() { return mat_t::Constant(0, 0, 0); }

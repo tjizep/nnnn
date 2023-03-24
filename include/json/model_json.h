@@ -5,13 +5,16 @@
 #ifndef NNNN_MODEL_JSON_H
 #define NNNN_MODEL_JSON_H
 
-#include <network.h>
-#include <read_mnist.h>
+#include "network.h"
+#include "read_mnist.h"
 #include <stdlib.h>
 #include <vector>
 #include <fstream>
-#include <nlohmann/json.hpp>
-#include <message_json.h>
+#include "nlohmann/json.hpp"
+#include "message_json.h"
+#include "training_set_json.h"
+#include "validate_json.h"
+#include "inference_json.h"
 
 namespace noodle{
     using namespace std;
@@ -24,73 +27,14 @@ namespace noodle{
     bool is_spec_child(const json& s){
         return s.is_array();
     }
-    node from(const json& j){
-        node n;
-        if(j.contains("outputs") && j["outputs"].is_number_integer())
-            n.outputs = j["outputs"];
-        if(j.contains("name") && j["name"].is_string())
-            n.name = j["name"];
-        if(j.contains("source") && j["source"].is_string())
-            n.source.push_back(j["source"]);
-        if(j.contains("source") && j["source"].is_array()){
-            for(auto s : j["source"]){
-                n.source.push_back(s);
-            }
-        }
-        if(n.name.empty()){
-            n.clear();
-            fatal_err("invalid name");
-        }
-
-        return n;
-    }
-    bool validate_name(string name, size_t count,const json& j){
-        if (!j.contains(name)) {
-            fatal_err("expected element", qt(name), "not found");
-            return false;
-        } else if (j[name].size() < count) {
-            fatal_err("element", qt(name), "has less than", count, "elements");
-            return false;
-        }
-        return true;
-    }
-
-    bool validate(const json & j, const json& spec, size_t lvl = 0){
-
-        for(auto e: spec.items()){
-            size_t count = 0;
-            if(spec.is_object()) {
-
-                if (e.value().is_number_integer()) {
-                    count = e.value();
-                }
-                if (!validate_name(e.key(), count, j)) {
-                    return false;
-                }
-                validate(j[e.key()], e.value(), lvl + 1);
-            }else if(spec.is_array()){
-                if(e.value().is_string()){
-                    if (!validate_name(e.value(), count, j)) {
-                        return false;
-                    }
-                }else if(e.value().is_object()){
-                    validate(j, e.value(), lvl + 1);
-                }
-            }
-        }
-        return true;
-    }
 
     struct mnist_loader{
         void load(training_set& ts, json& def){
 
             index_t image_size = def["scale"];
-
             if(image_size <= 0){
                 fatal_err("invalid image size", image_size);
             }
-
-
             string data_dir = def["path"];
             string test_label_path = def["test_label_path"];
             string train_label_path = def["train_label_path"];
@@ -108,7 +52,7 @@ namespace noodle{
         }
     };
 
-    bool json2varlayers(graph & g, VarLayers& layers, const json& l){
+    bool json2varlayers(graph & g, const json& l){
         if(!validate(l, {"def", "kind", "name"}))
             return false;
         if(!l["name"].is_string()){
@@ -218,7 +162,7 @@ namespace noodle{
         if(l_kind == "ENSEMBLE"){
             layer_holder l;
             auto l_models = l_def["models"];
-            json2varlayers(g, l.model, l_models);
+            json2varlayers(g, l_models);
 
             uint32_t in_size = l_def["inputs"];
             uint32_t out_size = l_def["outputs"];
@@ -228,66 +172,7 @@ namespace noodle{
         layers.push_back(oper);
         return true;
     }
-
-    bool load_model_from_json(string path){
-
-        std::ifstream f(path);
-        if (!f) {
-            fatal_err("file",path,"not found");
-            return false;
-        }
-
-        json def = json::parse(f);
-        if(def.empty()){
-            return false;
-        }
-        validate(def,
-             R"(
-                    {"model":
-                        ["name","kind",{"graph":["name", {"def":["nodes"]}]},"optimizer",
-                            {"data":
-                                [{"kind":1}, {"name":1}, {"outputs":1}, {"def":["scale", "path", "test_label_path"]}]
-                            }
-                        ]
-                 })"_json);
-
-        graph g;
-
-        auto model_def = def["model"];
-
-        auto optimizer_def = model_def["optimizer"];
-        auto model_graph = model_def["graph"];
-        auto graph_name = model_graph["name"];
-        auto model_graph_def = model_graph["def"];
-        auto model_nodes =  model_graph_def["nodes"];
-        auto data = model_def["data"];
-        auto data_kind = data["kind"];
-        auto data_def = data["def"];
-        auto data_dir = data_def["path"];
-        string persist = model_graph_def.contains("persist") ? model_graph_def["persist"] : "";
-        node dn = from(data);
-        string name = dn.name;
-
-        g.add(dn);
-
-        training_set ts;
-
-        if(data_kind == "mnist"){
-            mnist_loader loader;
-            loader.load(ts, data["def"]);
-        }else{
-            fatal_err("unrecognised kind of data",(string)data_kind);
-            return false;
-        }
-
-        VarLayers physical;
-        for(auto l : model_nodes){
-            if(!json2varlayers(g, physical, l))
-                return false;
-            // NOT yet, json_ensemble_2varlayers(physical, l);
-        }
-        print_dbg("physical.size()",physical.size());
-
+    bool optimize_from_json(graph& g, json& optimizer_def, string persist, const training_set& ts){
         for(auto o : optimizer_def) {
             if (!validate(o, {"kind", "def"}))
                 return false;
@@ -305,19 +190,14 @@ namespace noodle{
             auto save_schedule = def["save_schedule"];// unused
             print_dbg("learning rates", (num_t) lr[0], (num_t) lr[1]);
             array<noodle::num_t, 2> learning_rate = {lr[0], lr[1]};
-            if (!g.build_destinations()){
-                return false;
-            }
+
             noodle::trainer n(ts, mini_batch_size, learning_rate);
             if(!persist.empty()){
-                print_inf("persisting to/from", qt(persist));
-                load_messages(g, persist);
                 auto curr_acc = n.evaluate(g,1.0);
                 n.print_accuracy(curr_acc);
             }
 
-
-           // n.stochastic_gradient_descent(physical, epochs, threads, 75);
+            // n.stochastic_gradient_descent(physical, epochs, threads, 75);
             graph best = n.stochastic_gradient_descent(g, epochs, threads, 0);
             if(!persist.empty()) {
                 save_messages(best, persist);
@@ -325,6 +205,138 @@ namespace noodle{
             auto curr_acc = n.evaluate(best,1.0);
             n.print_accuracy(curr_acc);
         }
+        return true;
+    }
+    bool load_data_element(training_set& ts, json& data){
+
+        auto data_kind = data["kind"];
+        auto data_name = data["name"];
+        auto data_def = data["def"];
+        auto data_dir = data_def["path"];
+        auto data_enabled = data["enabled"];
+        bool enabled = (data_enabled.is_boolean() ) ? (bool)data_enabled : true;
+        if(!enabled) return true;
+
+        if (data_kind == "MNIST") {
+            mnist_loader loader;
+            loader.load(ts, data["def"]);
+            if(data_def.contains("export")){
+                string exp = data_def["export"];
+                save_training_set(exp, ts);
+                training_set ts_test;
+                load_training_set(ts_test, exp);
+                if(ts_test.training_inputs.size() != ts.training_inputs.size()){
+                    fatal_err("training set training_inputs",ts_test.training_inputs.size(), ts.training_inputs.size());
+                }
+                if(ts_test.training_outputs.size() != ts.training_outputs.size()){
+                    fatal_err("training set training_outputs",ts_test.training_outputs.size(), ts.training_outputs.size());
+                }
+                if(ts_test.training_labels.size() != ts.training_labels.size()){
+                    fatal_err("training set training_labels",ts_test.training_labels.size(), ts.training_labels.size());
+                }
+
+                if(ts_test.test_inputs.size() != ts.test_inputs.size()){
+                    fatal_err("training set test_inputs",ts_test.test_inputs.size(), ts.test_inputs.size());
+                }
+                if(ts_test.test_outputs.size() != ts.test_outputs.size()){
+                    fatal_err("training set test_outputs",ts_test.test_outputs.size(), ts.test_outputs.size());
+                }
+                if(ts_test.test_labels.size() != ts.test_labels.size()){
+                    fatal_err("training set test_labels",ts_test.test_labels.size(), ts.test_labels.size());
+                }
+
+            }
+        } else if (data_kind == "JSON") {
+
+
+            string path = data_dir;
+
+            if(load_training_set(ts, path)){
+                print_inf("loaded training set in",path,ts.training_inputs.size());
+            }else{
+                print_wrn("loaded training set in",path,"failed");
+            }
+        } else {
+            fatal_err("unrecognised kind of data", (string) data_kind);
+            return false;
+        }
+        return true;
+    }
+
+    bool load_model_from_json(string path){
+
+        std::ifstream f(path);
+        if (!f) {
+            fatal_err("file",path,"not found");
+            return false;
+        }
+
+        json def = json::parse(f);
+        if(def.empty()){
+            return false;
+        }
+        validate(def,
+         R"(
+                {"model":
+                    ["name","kind",{"graph":["name", {"def":["nodes"]}]},
+                        {"data":
+                            [{"kind":1}, {"name":1}, {"outputs":1}, {"def":["scale", "path", "test_label_path"]}]
+                        }
+                    ]
+             })"_json);
+
+        graph g;
+
+        auto model_def = def["model"];
+        auto model_def_name = model_def["name"];
+
+        auto optimizer_def = model_def["optimizer"];
+        auto model_graph = model_def["graph"];
+        auto graph_name = model_graph["name"];
+        auto model_graph_def = model_graph["def"];
+        auto model_nodes =  model_graph_def["nodes"];
+        auto data = model_def["data"];
+        vector<training_set> ts;
+        string persist = model_graph_def.contains("persist") ? model_graph_def["persist"] : "";
+        if(data.is_array()){
+            for(auto& data_element: data) {
+                node dn = from(data_element);
+                if(dn.enabled){
+                    g.add(dn); /// add this data node to the graph
+                    ts.push_back(training_set{});
+                    if(!load_data_element(ts.back(), data_element)){
+                        return false;
+                    }
+                }
+            }
+        }else{
+            fatal_err("the 'data' element is not an array");
+            return false;
+        }
+        for (auto l: model_nodes) {
+            if (!json2varlayers(g, l))
+                return false;
+            // NOT yet, json_ensemble_2varlayers(physical, l);
+        }
+        /// compile/construct the computational graph
+        if (!g.build_destinations()) {
+            return false;
+        }
+        print_dbg("g.size()", g.size());
+
+        if (!persist.empty()) {
+            print_inf("persisting to/from", qt(persist));
+            load_messages(g, persist);
+        }
+        if (!optimizer_def.is_null()) {
+            for(auto& t : ts){
+                if (optimize_from_json(g, optimizer_def, persist, t)) {
+                    return false;
+                }
+            }
+        }
+        infer_from_json(model_def, model_def_name, g);
+
         return true;
     }
 }
