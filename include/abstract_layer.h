@@ -15,5 +15,18 @@ namespace noodle {
 
         abstract_layer(string name) : name(name) {};
     };
+
+    /// backprop state data
+    struct gradients {
+        /// results for forward operation
+        vec_t activation = row_vector(); /// same as input or 'x'
+        vec_t output = row_vector(); /// as in 'y'
+        vector<vec_t> errors;
+
+        /// result for gradient backpropagation
+        vec_t bp_input = row_vector(); // aka gradient
+        vec_t bp_output = row_vector();
+
+    };
 }
 #endif //NNNN_ABSTRACT_LAYER_H

@@ -96,14 +96,6 @@ namespace noodle {
 
         sigmoid_layer() : abstract_layer("SIGMOID") {}
 
-        const vec_t &get_input() const {
-            return input;
-        }
-
-        vec_t &get_input() {
-            return input;
-        }
-
         vec_t forward(const vec_t &io) {
             assert(io.size() > 0);
             input = io;
@@ -112,7 +104,7 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const vec_t &output_error, num_t /*learning_rate*/) {
+        vec_t bp(const gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             assert(output_error.size() > 0);
             vec_t cd = output.unaryExpr(sigmoid_derivative{});
             //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.size() << " err " << output_error.norm() << " cder " << cd.norm() << endl;
@@ -129,14 +121,6 @@ namespace noodle {
         swish_layer(num_t beta) : abstract_layer("SWISH"), beta(beta) {}
         swish_layer() : abstract_layer("SWISH") {}
 
-        const vec_t &get_input() const {
-            return input;
-        }
-
-        vec_t &get_input() {
-            return input;
-        }
-
         vec_t forward(const vec_t &io) {
             assert(io.size() > 0);
             input = io;
@@ -145,7 +129,7 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const vec_t &output_error, num_t /*learning_rate*/) {
+        vec_t bp(const gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             assert(output_error.size() > 0);
             vec_t cd = output.unaryExpr(swish_derivative{beta});
             //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.size() << " err " << output_error.norm() << " cder " << cd.norm() << endl;
@@ -160,14 +144,6 @@ namespace noodle {
 
         tanh_layer() : abstract_layer("TANH") {}
 
-        const vec_t &get_input() const {
-            return input;
-        }
-
-        vec_t &get_input() {
-            return input;
-        }
-
         vec_t forward(const vec_t &io) {
             assert(io.size() > 0);
             input = io;
@@ -176,7 +152,7 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const vec_t &output_error, num_t /*learning_rate*/) {
+        vec_t bp(const gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             assert(output_error.size() > 0);
             vec_t cd = output.unaryExpr(tanh_derivative{});
             //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.size() << " err " << output_error.norm() << " cder " << cd.norm() << endl;
@@ -202,14 +178,6 @@ namespace noodle {
 
         low_sigmoid_layer(num_t flatness) : abstract_layer("LOW_SIGMOID"), flatness(flatness) {}
 
-        const vec_t &get_input() const {
-            return input;
-        }
-
-        vec_t &get_input() {
-            return input;
-        }
-
         vec_t forward(const vec_t &io) {
             input = io;
             output = input.unaryExpr(low_sigmoid{flatness});
@@ -217,7 +185,7 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const vec_t &output_error, num_t /*learning_rate*/) {
+        vec_t bp(const gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             assert(output_error.size() > 0);
             vec_t cd = output.unaryExpr(low_sigmoid_derivative{flatness});
             //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.size() << " err " << output_error.norm() << " cder " << cd.norm() << endl;
@@ -238,14 +206,6 @@ namespace noodle {
             this->leakiness = leakiness;
         }
 
-        const vec_t &get_input() const {
-            return input;
-        }
-
-        vec_t &get_input() {
-            return input;
-        }
-
         vec_t forward(const vec_t &io) {
             input = io;
             output = input;
@@ -256,7 +216,7 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const vec_t &output_error, num_t learning_rate) {
+        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
             num_t re = this->leakiness;
             vec_t cd = input.unaryExpr([&](num_t x) -> num_t {
                 return x > 0 ? 1 : 1 / re;
@@ -276,14 +236,6 @@ namespace noodle {
         normalize_layer() : abstract_layer("NORMALIZE") {
         }
 
-        const vec_t &get_input() const {
-            return input;
-        }
-
-        vec_t &get_input() {
-            return input;
-        }
-
         vec_t forward(const vec_t &io) {
             input = io;
             output = input;
@@ -291,7 +243,7 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const vec_t &output_error, num_t learning_rate) {
+        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
             vec_t result = output_error; //output_error.cwiseProduct(x);
             result *= 2;
             return result;
@@ -307,14 +259,6 @@ namespace noodle {
 
         dropout_layer(num_t ratio) : abstract_layer("DROPOUT") {
             this->ratio = ratio;
-        }
-
-        const vec_t &get_input() const {
-            return input;
-        }
-
-        vec_t &get_input() {
-            return input;
         }
 
         vec_t forward(const vec_t &io) {
@@ -336,7 +280,7 @@ namespace noodle {
             this->is_training = training;
         }
 
-        vec_t bp(const vec_t &output_error, num_t learning_rate) {
+        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
             return output_error;
         }
     };
@@ -350,14 +294,6 @@ namespace noodle {
 
         pepper_layer(num_t ratio) : abstract_layer("PEPPER") {
             this->ratio = ratio;
-        }
-
-        const vec_t &get_input() const {
-            return input;
-        }
-
-        vec_t &get_input() {
-            return input;
         }
 
         void set_training(bool training) {
@@ -378,7 +314,7 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const vec_t &output_error, num_t learning_rate) {
+        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
             std::uniform_real_distribution<num_t> distribution(-1, 1);
             vec_t output = output_error.unaryExpr([&](num_t x) -> num_t {
                 auto pepper = distribution(generator);
@@ -425,7 +361,7 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const vec_t &output_error, num_t learning_rate) {
+        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
             assert(output_error.size() > 0);
             assert(output.rows() == input.rows());
 

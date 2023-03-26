@@ -11,21 +11,12 @@ namespace noodle{
     using namespace std;
     using namespace Eigen;
     // graph node
-    struct node {
+    struct node : public gradients{
         string name;
         vector<string> source;
         vector<index_t> destinations;
         vector<index_t> sources;
         bool enabled = true;
-
-        /// results for forward operation
-        vec_t activation = row_vector();
-        vec_t output = row_vector();
-        vector<vec_t> errors;
-
-        /// result for gradient backpropagation
-        vec_t bp_input = row_vector(); // aka gradient
-        vec_t bp_output = row_vector();
 
         index_t outputs{0};
         index_t inputs{0};
@@ -468,9 +459,9 @@ namespace noodle{
                 }
                 /// "destinations" are realy the sources of the backprop operation
                 if(resolve(model).destinations.size() > 1){
-                    resolve(model).bp_output = var_layer_bp(resolve(model).operation, get_errors(model), learning_rate);
+                    resolve(model).bp_output = var_layer_bp(resolve(model), resolve(model).operation, get_errors(model), learning_rate);
                 }else{
-                    resolve(model).bp_output = var_layer_bp(resolve(model).operation, get_error(model),learning_rate);
+                    resolve(model).bp_output = var_layer_bp(resolve(model), resolve(model).operation, get_error(model),learning_rate);
                 }
 #if 0
                 if(outputs != resolve(model).output.rows()){

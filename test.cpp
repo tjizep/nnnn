@@ -10,7 +10,7 @@ void test_mnist(){
     noodle::num_t leakiness = 50;
     uint32_t image_size = 200;
     uint32_t model_size = 100;
-    noodle::VarLayers model;
+
     noodle::num_t sparsity = 0.7;
     noodle::num_t sparsity_greed = 16;// values > 1
 

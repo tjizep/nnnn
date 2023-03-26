@@ -17,14 +17,6 @@ namespace noodle {
         multiply_layer() : abstract_layer("MULTIPLY") {
         }
 
-        const vec_t &get_input() const {
-            return input;
-        }
-
-        vec_t &get_input() {
-            return input;
-        }
-
         vec_t forward(const vec_t &io) {
             input = io;
             output = input;
@@ -32,7 +24,7 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const vec_t &output_error, num_t learning_rate) {
+        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
 
             vec_t result = output_error;
 

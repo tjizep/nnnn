@@ -8,7 +8,7 @@
 #include <basics.h>
 #include <activations.h>
 #include <dense_layer.h>
-#include <ensemble.h>
+
 #include <unordered_set>
 #include <unordered_map>
 #include <list>
@@ -16,6 +16,7 @@
 
 namespace noodle {
     using namespace std;
+
     /// minimal layer that will still propagate
     struct empty_layer : public abstract_layer {
         vec_t input = row_vector();
@@ -26,13 +27,24 @@ namespace noodle {
             input = io;
             return input;
         }
-        const vec_t &get_input() const {
+        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
+            return output_error;
+        }
+    };
+
+    /// minimal layer that contains a reference
+    /// minimal layer that will still propagate
+    struct reference_layer : public abstract_layer {
+        vec_t input = row_vector();
+        index_t reference{-1};
+        reference_layer() : abstract_layer(
+                "REFERENCE") {
+        }
+        vec_t forward(const vec_t &io) {
+            input = io;
             return input;
         }
-        vec_t &get_input() {
-            return input;
-        }
-        vec_t bp(const vec_t &output_error, num_t learning_rate) {
+        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
             return output_error;
         }
     };
@@ -125,18 +137,14 @@ namespace noodle {
          * @param learning_rate
          * @return the result error to send to layers above (with lower layer depth)
          */
-        vec_t bp(const vec_t &input_error, num_t learning_rate) {
-            return impl.bp(input_error, learning_rate);
+        vec_t bp(const gradients& state, const vec_t &input_error, num_t learning_rate) {
+            return impl.bp(state, input_error, learning_rate);
         }
 
-        vec_t bp(const vector<vec_t> &input_errors, num_t learning_rate) {
+        vec_t bp(const gradients& state, const vector<vec_t> &input_errors, num_t learning_rate) {
             if constexpr (has_member(V, bp(input_errors)))
                 return impl.bp(input_errors, learning_rate);
             return row_vector();
-        }
-
-        vec_t get_input() const {
-            return impl.get_input();
         }
 
         void set_training(bool training) {
@@ -218,6 +226,7 @@ namespace noodle {
 
     typedef std::variant<
             model_member<empty_layer>,
+            model_member<reference_layer>,
             model_member<fc_layer>,
             model_member<sigmoid_layer>,
             model_member<low_sigmoid_layer>,
@@ -227,19 +236,8 @@ namespace noodle {
             model_member<soft_max_layer>,
             model_member<normalize_layer>,
             model_member<dropout_layer>,
-            model_member<pepper_layer>,
-            model_member<ensemble<layer_holder>>> layer;
+            model_member<pepper_layer>> layer;
 
-    typedef std::vector<layer> VarLayers;
-
-    class layer_holder {
-    public:
-        VarLayers model;
-
-        vec_t feed_forward(const vec_t &a0);
-
-        vec_t back_prop(const vec_t &error_, num_t lr);
-    };
 
     void var_initialize_(layer& l){
         std::visit([&](auto &&arg) {
@@ -365,20 +363,14 @@ namespace noodle {
         return true;
     }
 
-    static inline vec_t var_layer_bp(layer &v, const vec_t &input_error, num_t learning_rate) {
+    static inline vec_t var_layer_bp(const gradients& state, layer &v, const vec_t &input_error, num_t learning_rate) {
         return std::visit([&](auto &&arg) -> vec_t {
-            return arg.bp(input_error, learning_rate);
+            return arg.bp(state, input_error, learning_rate);
         }, v);
     }
-    static inline vec_t var_layer_bp(layer &v, const vector<vec_t> &input_error, num_t learning_rate) {
+    static inline vec_t var_layer_bp(const gradients& state, layer &v, const vector<vec_t> &input_error, num_t learning_rate) {
         return std::visit([&](auto &&arg) -> vec_t {
-            return arg.bp(input_error, learning_rate);
-        }, v);
-    }
-
-    vec_t var_get_input(layer &v) {
-        return std::visit([](auto &&arg) -> vec_t {
-            return arg.get_input();
+            return arg.bp(state, input_error, learning_rate);
         }, v);
     }
 
@@ -417,35 +409,6 @@ namespace noodle {
         }, v);
     }
 
-    vec_t layer_holder::feed_forward(const vec_t &a0) {
-        vec_t activation = a0;
-        int at = 0;
-        print_dbg("var input activations", activation.norm(), "@", 0);
-        for (auto &l: model) {
-            activation = var_forward(l, activation);
-            print_dbg(at, var_get_name(l), "activation val", activation.norm(), activation.sum());
-            ++at;
-        }
-        return activation;
-    }
-
-    vec_t layer_holder::back_prop(const vec_t &error_, num_t lr) {
-        vec_t error = error_;
-        int lix = model.size() - 1;
-        print_dbg("err.", error.norm());
-        for (auto cl = model.rbegin(); cl != model.rend(); ++cl) {
-            error = var_layer_bp(*cl, error, lr);
-            print_dbg(lix, var_get_name(*cl), "err val", error.norm(), error.sum());
-            //assert(!has_nan(error));
-            //assert(!has_inf(error));
-            --lix;
-        }
-        return error;
-    }
-
-    VarLayers& get_iterable(VarLayers& model){
-        return model;
-    }
     layer& get_layer(layer& l){
         return l;
     }

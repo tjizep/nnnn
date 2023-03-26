@@ -153,25 +153,7 @@ namespace noodle{
         //layers.push_back(oper);
         return true;
     }
-    bool json_ensemble_2varlayers(graph& g, VarLayers& layers, const json& l){
-        if(!validate(l, {"def", "kind"}))
-            return false;
-        auto l_def = l["def"];
-        auto l_kind = l["kind"];
-        layer oper = noodle::empty_layer{};
-        if(l_kind == "ENSEMBLE"){
-            layer_holder l;
-            auto l_models = l_def["models"];
-            json2varlayers(g, l_models);
 
-            uint32_t in_size = l_def["inputs"];
-            uint32_t out_size = l_def["outputs"];
-            oper = noodle::ensemble<layer_holder>{l, in_size,out_size};
-            //layers.push_back();
-        }
-        layers.push_back(oper);
-        return true;
-    }
     bool optimize_from_json(graph& g, json& optimizer_def, string persist, const training_set& ts){
         for(auto o : optimizer_def) {
             if (!validate(o, {"kind", "def"}))

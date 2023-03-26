@@ -10,7 +10,6 @@
 #include <shared_mutex>
 #include <thread>
 #include <model.h>
-#include <ensemble.h>
 #include <graph.h>
 
 namespace noodle {
@@ -32,7 +31,6 @@ namespace noodle {
     class trainer {
     public:
     private:
-        typedef vector<layer> VarLayersType;
         training_set data;
         size_t mini_batch_size_ = 3;
         LearningRate learning_rate_ = {0.3, 0.01};
@@ -45,18 +43,6 @@ namespace noodle {
             this->data = data;
             mini_batch_size_ = mini_batch_size;
             learning_rate_ = std::move(learning_rate);
-        }
-
-        static vec_t var_feed_forward(vec_t &a0, VarLayers &model) {
-            vec_t activation = a0;
-            int at = 0;
-            //cout << "var input activations " << activation.norm() << "@" << (0) <<  endl;
-            for (auto &l: model) {
-                activation = var_forward(l, activation);
-                //cout << at << " " << var_get_name (l) << " activation val " << activation.norm() << " " << activation.sum() <<endl;
-                ++at;
-            }
-            return activation;
         }
 
         static vec_t var_feed_forward(vec_t &a0, graph &model) {
@@ -96,18 +82,6 @@ namespace noodle {
             }
         }
 
-        static inline void var_bp(const vec_t &error_, num_t lr, VarLayers &model) {
-            vec_t error = error_;
-            int lix = model.size() - 1;
-            //cout << "BACKPROP err. " << error.norm() << endl;
-            for (auto cl = model.rbegin(); cl != model.rend(); ++cl) {
-                error = var_layer_bp(*cl, error, lr);
-                //cout << lix << " " << var_get_name (*cl) << " err val " << error.norm() << " " << error.sum() <<endl;
-                //assert(!has_nan(error));
-                //assert(!has_inf(error));
-                --lix;
-            }
-        }
         enum{
             TRAIN = 0,
             TEST = 1,
@@ -251,11 +225,6 @@ namespace noodle {
             return best_model;
         }
 
-        num_t find_best_lr(const VarLayers &model, num_t lr_step, num_t lr) {
-            //cout << endl << "best test lr " << best_test_lr << " vs. " << lr << endl;
-            return lr;
-        }
-
         /**
          *
          * @param batch_index
@@ -274,17 +243,6 @@ namespace noodle {
         }
 
         static void
-        update_sample(const vec_t &a0_, const vec_t &target_, size_t batch_index, num_t lr, VarLayers &model) {
-            var_start_sample(model);
-            vec_t a0 = a0_, target = target_;
-            vec_t result = var_feed_forward(a0, model);
-
-            vec_t error = loss_prime(target, result);
-
-            var_bp(error, lr, model);
-            var_end_sample(model);
-        }
-        static void
         update_sample(const vec_t &a0_, const vec_t &target_, size_t batch_index, num_t lr, graph &model) {
             print_dbg("update_sample_layers", batch_index);
             model.start_sample();
@@ -297,37 +255,8 @@ namespace noodle {
             model.end_sample();
         }
 
-        static void
-        update_sample(const training_set &data, size_t batch_index,
-                      num_t lr, VarLayers &model) {
-
-            vec_t a0, target;
-            a0 = data.training_inputs[batch_index];
-            target = data.training_outputs[batch_index];
-            update_sample(a0, target, batch_index, lr, model);
-        }
-
-        void update_layers(VarLayers &dest, const VarLayers &source) {
-            auto isource = source.begin();
-            auto idest = dest.begin();
-            for (; isource != source.end() && idest != dest.end(); ++isource, ++idest) {
-                if (!var_layer_update_bp(*idest, *isource)) {
-                    fatal_err("layer type not found");
-                }
-            }
-        }
         void update_layers(graph &dest, const graph &source) {
             source.update_layers(dest);
-        }
-
-        void raw_copy(VarLayers &dest, const VarLayers &source) {
-            auto isource = source.begin();
-            auto idest = dest.begin();
-            for (; isource != source.end() && idest != dest.end(); ++isource, ++idest) {
-                if (!var_layer_raw_copy(*idest, *isource)) {
-                    fatal_err("layer type not found");
-                }
-            }
         }
 
         /**
@@ -410,7 +339,7 @@ namespace noodle {
                 for (uint32_t i = 0; i < data.training_outputs.size() * fraction; i++) {
                     size_t o_index = dis_t(g);
                     vec_t vi = var_feed_forward(data.training_inputs[o_index], model);
-                    //vec_t vi = var_get_input(get_layer(model.back()));
+
                     vi.maxCoeff(&output);
                     data.training_outputs[o_index].maxCoeff(&train_output);
                     if (output == train_output) {

@@ -116,14 +116,6 @@ namespace noodle {
             return output;
         }
 
-        const vec_t &get_input() const {
-            return input;
-        }
-
-        vec_t &get_input() {
-            return input;
-        }
-
         num_t get_weights_sparseness() const {
             return sparseness.get_sparseness(weights);
         }
@@ -217,7 +209,7 @@ namespace noodle {
         }
 
         /// output error is from next layer below this one (since its reverse prop) or start
-        vec_t bp(const vec_t &output_error, num_t learning_rate) {
+        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
 
 
             assert(out_size == 0 || out_size == output_error.rows());
