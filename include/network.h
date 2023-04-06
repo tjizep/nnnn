@@ -87,13 +87,21 @@ namespace noodle {
             TEST = 1,
             BOTH
         };
+        struct model_perf_t{
+            num_t test{0};
+            num_t train{0};
+            model_perf_t(){
+
+            }
+            model_perf_t(num_t test, num_t train) : test(test), train(train){
+
+            }
+        };
         template<typename ModelType>
         ModelType
         stochastic_gradient_descent(ModelType &model, uint32_t epochs, size_t shards = 1, num_t max_streak = 3) {
             ModelType best_model;
-            array<num_t, 2> model_perf, best_perf;
-            best_perf = {0,0};
-            model_perf = {0,0};
+            model_perf_t model_perf, best_perf;
             /// NB: we can never use model_perf[0] or best_perf[0]
             /// because then we are using test accuracy during training
 
@@ -133,7 +141,7 @@ namespace noodle {
                     for (size_t t = 0; t < shards; ++t) {
                         threads[t] = thread([&](size_t at) {
                             size_t buffer = 0;
-                            for (int batch_num = 0;
+                            for (index_t batch_num = 0;
                                  batch_num * mini_batch_size_ < data.training_inputs.size(); batch_num++) {
                                 if (batch_num % shards == 0) {
                                     ++ix;
@@ -158,7 +166,7 @@ namespace noodle {
                         t.join();
                     }
                 } else {
-                    for (int batch_num = 0; batch_num * mini_batch_size_ < data.training_inputs.size(); batch_num++) {
+                    for (index_t batch_num = 0; batch_num * mini_batch_size_ < data.training_inputs.size(); batch_num++) {
                         update_mini_batch(indices, batch_num, lr, model);
                         ++ix;
                     }
@@ -167,13 +175,13 @@ namespace noodle {
                 std::chrono::duration<float> diff = epoch_time_end - epoch_timer;
                 print_inf("Completing Epoch",e,". complete ",
                      100 * ix / total, "%");
-                print_inf("estimated acc.:",best_perf[TEST]);
+                print_inf("estimated acc.:",best_perf.test);
                 print_inf("last epoch duration:",diff.count(),"s, lr:",lr);
                 if (((num_t) ix / (num_t) total) > 0.06) {
                     model_perf = evaluate(model, 0.15, TEST);
-                    if (model_perf[TEST] > best_perf[TEST]) {
+                    if (model_perf.test > best_perf.test) {
                         model_perf = evaluate(model, .3, TEST);
-                        if (model_perf[TEST] > best_perf[TEST]) {
+                        if (model_perf.test > best_perf.test) {
                             losing_streak = max_streak;
                             best_model = model;
                             best_perf = model_perf;
@@ -201,7 +209,7 @@ namespace noodle {
             }else{
                 model_perf = evaluate(model, 1, TEST);
                 best_perf = evaluate(best_model, 1, TEST);
-                if (model_perf[TEST] > best_perf[TEST]) {
+                if (model_perf.test > best_perf.test) {
                     best_model = model;
                     best_perf = model_perf;
                     best_epoch = epochs;
@@ -310,10 +318,10 @@ namespace noodle {
                       "Testing set in_size", data.test_labels.size());
         }
 
-        void print_accuracy(array<num_t, 2> result) {
+        void print_accuracy(model_perf_t result) {
 
-            print_inf("Accuracy: Train =", result[TRAIN] * 100,"%, ",
-            "Validation =", result[TEST] * 100, "%");
+            print_inf("Accuracy: Train =", result.train * 100,"%, ",
+            "Validation =", result.test * 100, "%");
         }
         /**
          * evaluate model stochastically
@@ -323,13 +331,13 @@ namespace noodle {
          */
         // stochastic evaluation
         template<typename ModelType>
-        array<num_t, 2> evaluate(ModelType &model, num_t fraction_ = 1, index_t which = BOTH) {
+        model_perf_t evaluate(ModelType &model, num_t fraction_ = 1, index_t which = BOTH) {
             num_t fraction = abs(fraction_);
             if (fraction > 2) fraction = 1;
             std::random_device rd;
             std::mt19937 g(rd());
 
-            array<num_t, 2> result;
+            model_perf_t result;
             size_t num_correct = 0;
             size_t output;
             size_t train_output;
@@ -346,9 +354,9 @@ namespace noodle {
                         num_correct++;
                     }
                 }
-                result[TRAIN] = (num_t) num_correct / (fraction * data.training_inputs.size());
+                result.train = (num_t) num_correct / (fraction * data.training_inputs.size());
             }else{
-                result[TRAIN] = 0;
+                result.train = 0;
             }
 
             std::uniform_int_distribution<size_t> dis(0, data.test_inputs.size() - 1);
@@ -364,9 +372,9 @@ namespace noodle {
                     }
                 }
 
-                result[TEST] = (num_t) num_correct / (fraction * data.test_labels.size());
+                result.test = (num_t) num_correct / (fraction * data.test_labels.size());
             }else{
-                result[TEST] = 0;
+                result.test = 0;
             }
             var_set_training(model, true);
             return result;
