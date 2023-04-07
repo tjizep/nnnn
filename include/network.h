@@ -17,13 +17,13 @@ namespace noodle {
     using namespace Eigen;
     struct training_set {
         string name; /// something to ID this with
-        vector<int> training_labels;
+        vector<index_t> training_labels;
         vector<noodle::vec_t> training_inputs ;
         vector<noodle::vec_t> training_outputs ;
-        vector<int> test_labels ;
+        vector<index_t> test_labels ;
         vector<noodle::vec_t> test_inputs;
         vector<noodle::vec_t> test_outputs;
-        int32_t data_size;
+        index_t data_size;
     };
 
     typedef std::array<num_t, 2> LearningRate;
@@ -112,8 +112,8 @@ namespace noodle {
             var_initialize(model);
             print_inf("Beginning var stochastic gradient descent");
             auto sgd_timer = std::chrono::high_resolution_clock::now();
-            vector<int> indices;
-            for (uint32_t i = 0; i < data.training_inputs.size(); i++) {
+            vector<index_t> indices;
+            for (index_t i = 0; i < data.training_inputs.size(); i++) {
                 indices.push_back(i);
             }
             std::uniform_int_distribution<size_t> dis(0, data.training_inputs.size() - 1);
@@ -277,7 +277,7 @@ namespace noodle {
          * @param model the model that provides inference and back-prop
          */
          template<typename ModelType>
-        void update_mini_batch(vector<int> &indices, int batch_num, num_t lr, ModelType &model) {
+        void update_mini_batch(vector<index_t> &indices, int batch_num, num_t lr, ModelType &model) {
             int batch_index = 0;
             print_dbg("update_mini_batch",batch_num);
             var_start_batch(model);
@@ -297,7 +297,7 @@ namespace noodle {
         }
 
         template<typename ModelType>
-        void update_mini_batch_single(vector<int> &indices, int batch_num, num_t lr, ModelType &model) {
+        void update_mini_batch_single(vector<index_t> &indices, int batch_num, num_t lr, ModelType &model) {
             int batch_index = 0;
             vec_t a0, target;
             var_start_batch(model);

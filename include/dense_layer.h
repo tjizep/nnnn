@@ -23,10 +23,6 @@ namespace noodle {
         vec_t biases = row_vector();
         mat_t weights = matrix();
 
-        mat_t prev_weights_delta = matrix();
-        vec_t prev_biases_delta = row_vector();
-
-        vec_t input = row_vector();
         vec_t output = row_vector();
         /// temp data during training
         vec_t input_error = row_vector();
@@ -105,8 +101,7 @@ namespace noodle {
             }
         }
 
-        vec_t forward(const vec_t &io) {
-            input = io;
+        vec_t forward(const vec_t &input) {
             //output = weights * input;
             sparseness.vec_mul_assign(output, weights, input);
             assert(output.rows() == out_size);
@@ -138,15 +133,6 @@ namespace noodle {
             biases += mini_batch_update_biases;
             if (sparseness.sparseness && train_percent > 0.05)
                 sparseness.reduce_weights(weights);
-            if (momentum > 0) {
-                if (prev_weights_delta.size() > 0)
-                    weights += momentum * prev_weights_delta;
-                if (prev_biases_delta.size() > 0)
-                    biases += momentum * prev_biases_delta;
-
-                prev_weights_delta = mini_batch_update_weights;
-                prev_biases_delta = mini_batch_update_biases;
-            }
 
             round_();
 
@@ -186,7 +172,6 @@ namespace noodle {
             in_size = fc.in_size;
             out_size = fc.out_size;
             //index = fc.index;
-            input = fc.input;
             input_error = fc.input_error;
             output = fc.output;
             momentum = 0;
@@ -209,7 +194,7 @@ namespace noodle {
         }
 
         /// output error is from next layer below this one (since its reverse prop) or start
-        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
+        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
 
 
             assert(out_size == 0 || out_size == output_error.rows());
@@ -217,7 +202,7 @@ namespace noodle {
 
             //weights_error = output_error * input.transpose();
             //sparseness.project_mul(weights_error, output_error, input, -learning_rate);
-            sparseness.project_mul_add(mini_batch_update_weights, output_error, input, -learning_rate);
+            sparseness.project_mul_add(mini_batch_update_weights, output_error, state.activation, -learning_rate);
 
             update_mini_batch_weights(learning_rate, output_error);
             index_t index = 1;
@@ -225,13 +210,13 @@ namespace noodle {
 
                 //input_error = weights.transpose() * output_error; // don't calculate this on the top layer
                 // 100x50 * 50x1 = 100x1
-                sparseness.mask_mul(input_error, weights, output_error);
+                //state.bp_output
+                sparseness.mask_mul(state.bp_output, weights, output_error);
 
             } else {
-                input_error = output_error;
+                state.bp_output = output_error;
             }
 
-            return input_error;
         }
 
     };

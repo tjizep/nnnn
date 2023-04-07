@@ -333,38 +333,41 @@ namespace noodle{
                 }
                 resolve(model).activation = activation;
             }
-            vec_t& get_activation(graph& model){
+            void get_activation(graph& model){
                 for(auto s : resolve(model).sources){
-                    return model.resolve(s).output;
+                    resolve(model).activation = model.resolve(s).output;
+                    return;
                 }
-                return resolve(model).activation;
             }
-            vector<vec_t> activations;
+
             bool get_activations(graph& model){
-                activations.clear();
+                resolve(model).activations.clear();
                 if(resolve(model).sources.size() < 2){
                     fatal_err("requires multiple activations");
                     return false;
                 }
                 for(auto s : resolve(model).sources){
-                    activations.push_back(model.resolve(s).output);
+                    resolve(model).activations.push_back(model.resolve(s).output);
                 }
-                return !activations.empty();
+                return !resolve(model).activations.empty();
             }
 
             bool forward(graph& model){
                 index_t inputs = resolve(model).inputs;
-                index_t outputs = resolve(model).outputs;
+
                 //print_dbg(inputs,outputs,get_activation(model).rows());
-                if(inputs > 0 && get_activation(model).rows() > 0 && inputs != get_activation(model).rows()){
-                    fatal_err("the required vector input size (inputs)",resolve(model).inputs,"does not match the given",get_activation(model).rows());
-                    return false;
-                }
+
                 if(resolve(model).sources.size() > 1){
                     get_activations(model);
-                    resolve(model).output = var_forward(resolve(model).operation, activations);
+
+                    resolve(model).output = var_forward(resolve(model).operation, resolve(model).activations);
                 }else{
-                    resolve(model).output = var_forward(resolve(model).operation, get_activation(model));
+                    get_activation(model);
+                    if(inputs > 0 && resolve(model).activation.rows() > 0 && inputs != resolve(model).activation.rows()){
+                        fatal_err("the required vector input size (inputs)",resolve(model).inputs,"does not match the given",resolve(model).activation.rows());
+                        return false;
+                    }
+                    resolve(model).output = var_forward(resolve(model).operation, resolve(model).activation);
                 }
 #if 0
                 if(outputs != resolve(model).output.rows()){
@@ -459,9 +462,9 @@ namespace noodle{
                 }
                 /// "destinations" are realy the sources of the backprop operation
                 if(resolve(model).destinations.size() > 1){
-                    resolve(model).bp_output = var_layer_bp(resolve(model), resolve(model).operation, get_errors(model), learning_rate);
+                    var_layer_bp(resolve(model), resolve(model).operation, get_errors(model), learning_rate);
                 }else{
-                    resolve(model).bp_output = var_layer_bp(resolve(model), resolve(model).operation, get_error(model),learning_rate);
+                    var_layer_bp(resolve(model), resolve(model).operation, get_error(model),learning_rate);
                 }
 #if 0
                 if(outputs != resolve(model).output.rows()){

@@ -104,13 +104,12 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
+        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             assert(output_error.size() > 0);
             vec_t cd = output.unaryExpr(sigmoid_derivative{});
             //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.size() << " err " << output_error.norm() << " cder " << cd.norm() << endl;
             assert(output.rows() == input.rows());
-            vec_t result = output_error.cwiseProduct(cd);
-            return result;
+            state.bp_output = output_error.cwiseProduct(cd);
         }
     };
     struct swish_layer : public abstract_layer {
@@ -129,13 +128,12 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
+        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             assert(output_error.size() > 0);
             vec_t cd = output.unaryExpr(swish_derivative{beta});
             //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.size() << " err " << output_error.norm() << " cder " << cd.norm() << endl;
             assert(output.rows() == input.rows());
-            vec_t result = output_error.cwiseProduct(cd);
-            return result;
+            state.bp_output = output_error.cwiseProduct(cd);
         }
     };
     struct tanh_layer : public abstract_layer {
@@ -152,13 +150,12 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
+        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             assert(output_error.size() > 0);
             vec_t cd = output.unaryExpr(tanh_derivative{});
             //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.size() << " err " << output_error.norm() << " cder " << cd.norm() << endl;
             assert(output.rows() == input.rows());
-            vec_t result = output_error.cwiseProduct(cd);
-            return result;
+            state.bp_output = output_error.cwiseProduct(cd);
         }
     };
 
@@ -185,14 +182,13 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
+        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             assert(output_error.size() > 0);
             vec_t cd = output.unaryExpr(low_sigmoid_derivative{flatness});
             //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.size() << " err " << output_error.norm() << " cder " << cd.norm() << endl;
             assert(output.rows() == input.rows());
-            vec_t result = output_error.cwiseProduct(cd);
+            state.bp_output = output_error.cwiseProduct(cd);
 
-            return result;
         }
     };
 
@@ -216,15 +212,12 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
+        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
             num_t re = this->leakiness;
             vec_t cd = input.unaryExpr([&](num_t x) -> num_t {
                 return x > 0 ? 1 : 1 / re;
             });
-
-            vec_t result = output_error.cwiseProduct(cd);
-
-            return result;
+            state.bp_output = output_error.cwiseProduct(cd);
         }
 
     };
@@ -243,10 +236,9 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
-            vec_t result = output_error; //output_error.cwiseProduct(x);
-            result *= 2;
-            return result;
+        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
+            state.bp_output = output_error; //output_error.cwiseProduct(x);
+            state.bp_output *= 2;
         }
     };
 
@@ -280,8 +272,8 @@ namespace noodle {
             this->is_training = training;
         }
 
-        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
-            return output_error;
+        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
+            state.bp_output = output_error;
         }
     };
 
@@ -314,13 +306,8 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
-            std::uniform_real_distribution<num_t> distribution(-1, 1);
-            vec_t output = output_error.unaryExpr([&](num_t x) -> num_t {
-                auto pepper = distribution(generator);
-                return x + x * ratio * pepper;
-            });
-            return output_error;
+        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
+            state.bp_output = output_error;
         }
     };
 
@@ -361,7 +348,7 @@ namespace noodle {
             return output;
         }
 
-        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
+        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
             assert(output_error.size() > 0);
             assert(output.rows() == input.rows());
 
@@ -371,9 +358,7 @@ namespace noodle {
                     softmax * vec_t::Identity(softmax.rows(), softmax.cols())
                     - (softmax.transpose() * softmax)).array();
 #endif
-            vec_t result;
-            result = output_error; // TODO: this is not correct but its working anyway
-            return result;
+            state.bp_output = output_error; // TODO: this is not correct but its working anyway
         }
     };
 

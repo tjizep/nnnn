@@ -27,8 +27,8 @@ namespace noodle {
             input = io;
             return input;
         }
-        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
-            return output_error;
+        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
+            state.bp_output = output_error;
         }
     };
 
@@ -44,8 +44,8 @@ namespace noodle {
             input = io;
             return input;
         }
-        vec_t bp(const gradients& state, const vec_t &output_error, num_t learning_rate) {
-            return output_error;
+        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
+            state.bp_output = output_error;
         }
     };
 
@@ -137,14 +137,19 @@ namespace noodle {
          * @param learning_rate
          * @return the result error to send to layers above (with lower layer depth)
          */
-        vec_t bp(const gradients& state, const vec_t &input_error, num_t learning_rate) {
-            return impl.bp(state, input_error, learning_rate);
+        void bp(gradients& state, const vec_t &input_error, num_t learning_rate) {
+            if constexpr (has_member(V, bp(state, input_error, learning_rate))) {
+                impl.bp(state, input_error, learning_rate);
+            }else{
+                state.bp_output = input_error;
+            }
+
         }
 
-        vec_t bp(const gradients& state, const vector<vec_t> &input_errors, num_t learning_rate) {
-            if constexpr (has_member(V, bp(input_errors)))
-                return impl.bp(input_errors, learning_rate);
-            return row_vector();
+        void bp(gradients& state, const vector<vec_t> &input_errors, num_t learning_rate) {
+            if constexpr (has_member(V, bp(input_errors, learning_rate)))
+                impl.bp(input_errors, learning_rate);
+
         }
 
         void set_training(bool training) {
@@ -363,14 +368,14 @@ namespace noodle {
         return true;
     }
 
-    static inline vec_t var_layer_bp(const gradients& state, layer &v, const vec_t &input_error, num_t learning_rate) {
-        return std::visit([&](auto &&arg) -> vec_t {
-            return arg.bp(state, input_error, learning_rate);
+    static inline void var_layer_bp(gradients& state, layer &v, const vec_t &input_error, num_t learning_rate) {
+        std::visit([&](auto &&arg) {
+            arg.bp(state, input_error, learning_rate);
         }, v);
     }
-    static inline vec_t var_layer_bp(const gradients& state, layer &v, const vector<vec_t> &input_error, num_t learning_rate) {
-        return std::visit([&](auto &&arg) -> vec_t {
-            return arg.bp(state, input_error, learning_rate);
+    static inline void var_layer_bp(gradients& state, layer &v, const vector<vec_t> &input_error, num_t learning_rate) {
+        return std::visit([&](auto &&arg) {
+            arg.bp(state, input_error, learning_rate);
         }, v);
     }
 

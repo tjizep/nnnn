@@ -6,25 +6,26 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <Eigen/Dense>
+#include "basics.h"
 
-namespace mnist {
+namespace noodle {
 
 
     using namespace std;
     using namespace Eigen;
-
+namespace mnist {
 
     static uint32_t swap_endian(uint32_t val) {
         val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF);
         return (val << 16) | (val >> 16);
     }
 
-    static std::vector<int> get_labels(string path) {
+    static std::vector<index_t> get_labels(string path) {
         ifstream file(path, ios::in | ios::binary);
         uint32_t magic;
         uint32_t num_items;
         char label;
-        vector<int> labels;
+        vector<index_t> labels;
         if (file.is_open()) {
             print_inf("Reading label file:", path);
 
@@ -129,20 +130,21 @@ namespace mnist {
     }
 
     template<typename vec_t>
-    static vec_t output_vector(int label) {
+    static vec_t output_vector(index_t label) {
         vec_t y = vec_t::Constant(10, 0);
         y[label] = 1;
         return y;
     }
 
     template<typename vec_t>
-    static vector<vec_t> get_output_vectors(vector<int> labels) {
+    static vector<vec_t> get_output_vectors(vector<index_t> labels) {
         vector<vec_t> output_vectors;
 
-        for (uint32_t i = 0; i < labels.size(); i++) {
+        for (index_t i = 0; i < labels.size(); i++) {
             output_vectors.push_back(output_vector<vec_t>(labels[i]));
         }
 
         return output_vectors;
     }
+};
 };
