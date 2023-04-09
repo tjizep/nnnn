@@ -55,7 +55,7 @@
           {
             "name": "001",
             "kind": "SPARSE_FC",
-            "outputs": 100,
+            "outputs": 25,
             "def": {
               "sparsity": 0,
               "greediness": 5.01
@@ -71,7 +71,7 @@
           {
             "name": "002",
             "kind": "SPARSE_FC",
-            "outputs": 50,
+            "outputs": 25,
             "def": {
               "sparsity": 0,
               "greediness": 5.01
@@ -126,7 +126,7 @@
       "mnist_good": {
         "kind": "SGD",
         "def": {
-          "epochs": 24,
+          "epochs": 17,
           "mini_batch_size": 24,
           "threads": 8,
           "learning_rates": [

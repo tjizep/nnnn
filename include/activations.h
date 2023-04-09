@@ -84,37 +84,28 @@ namespace noodle {
 
     struct relu_derivative {
         num_t max_val = 1000;
-
         num_t operator()(num_t x) const {
             return (x >= 0) ? 1 : x / 1000;
         }
     };
 
     struct sigmoid_layer : public abstract_layer {
-        vec_t input = row_vector();
-        vec_t output = row_vector();
 
         sigmoid_layer() : abstract_layer("SIGMOID") {}
 
         vec_t forward(const vec_t &io) {
             assert(io.size() > 0);
-            input = io;
-            //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.rows() << " input " << input.norm() << endl;
-            output = io.unaryExpr(sigmoid{});
-            return output;
+            return io.unaryExpr(sigmoid{});
         }
 
         void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             assert(output_error.size() > 0);
-            vec_t cd = output.unaryExpr(sigmoid_derivative{});
-            //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.size() << " err " << output_error.norm() << " cder " << cd.norm() << endl;
+            vec_t cd = state.output.unaryExpr(sigmoid_derivative{});
             assert(output.rows() == input.rows());
             state.bp_output = output_error.cwiseProduct(cd);
         }
     };
     struct swish_layer : public abstract_layer {
-        vec_t input = row_vector();
-        vec_t output = row_vector();
         num_t beta = 1;
 
         swish_layer(num_t beta) : abstract_layer("SWISH"), beta(beta) {}
@@ -122,39 +113,29 @@ namespace noodle {
 
         vec_t forward(const vec_t &io) {
             assert(io.size() > 0);
-            input = io;
-            //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.rows() << " input " << input.norm() << endl;
-            output = io.unaryExpr(swish{beta});
-            return output;
+            return io.unaryExpr(swish{beta});
         }
 
         void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             assert(output_error.size() > 0);
-            vec_t cd = output.unaryExpr(swish_derivative{beta});
-            //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.size() << " err " << output_error.norm() << " cder " << cd.norm() << endl;
+            vec_t cd = state.output.unaryExpr(swish_derivative{beta});
             assert(output.rows() == input.rows());
             state.bp_output = output_error.cwiseProduct(cd);
         }
     };
     struct tanh_layer : public abstract_layer {
-        vec_t input = row_vector();
-        vec_t output = row_vector();
 
         tanh_layer() : abstract_layer("TANH") {}
 
         vec_t forward(const vec_t &io) {
             assert(io.size() > 0);
-            input = io;
-            //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.rows() << " input " << input.norm() << endl;
-            output = io.unaryExpr(tanh_activation{});
-            return output;
+            return io.unaryExpr(tanh_activation{});
         }
 
         void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             assert(output_error.size() > 0);
-            vec_t cd = output.unaryExpr(tanh_derivative{});
-            //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.size() << " err " << output_error.norm() << " cder " << cd.norm() << endl;
-            assert(output.rows() == input.rows());
+            vec_t cd = state.output.unaryExpr(tanh_derivative{});
+            assert(state.output.rows() == input.rows());
             state.bp_output = output_error.cwiseProduct(cd);
         }
     };
@@ -167,8 +148,6 @@ namespace noodle {
      * Can improve model accuracy but wont reduce it. There's probably another name for this somewhere.
      */
     struct low_sigmoid_layer : public abstract_layer {
-        vec_t input = row_vector();
-        vec_t output = row_vector();
         num_t flatness = 0.37;
 
         low_sigmoid_layer() : abstract_layer("LOW_SIGMOID") {}
@@ -176,17 +155,13 @@ namespace noodle {
         low_sigmoid_layer(num_t flatness) : abstract_layer("LOW_SIGMOID"), flatness(flatness) {}
 
         vec_t forward(const vec_t &io) {
-            input = io;
-            output = input.unaryExpr(low_sigmoid{flatness});
-
-            return output;
+            return io.unaryExpr(low_sigmoid{flatness});
         }
 
         void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             assert(output_error.size() > 0);
-            vec_t cd = output.unaryExpr(low_sigmoid_derivative{flatness});
-            //cout << "L " << depth << " " << __FUNCTION__ << " " << name << " " << input.size() << " err " << output_error.norm() << " cder " << cd.norm() << endl;
-            assert(output.rows() == input.rows());
+            vec_t cd = state.output.unaryExpr(low_sigmoid_derivative{flatness});
+            assert(state.output.rows() == input.rows());
             state.bp_output = output_error.cwiseProduct(cd);
 
         }
@@ -194,8 +169,6 @@ namespace noodle {
 
     struct relu_layer : public abstract_layer {
 
-        vec_t input = row_vector();
-        vec_t output = row_vector();
         num_t leakiness = 1; // use factors > 1 i.e. 10, 100, 1000
 
         relu_layer(num_t leakiness = 1) : abstract_layer("LRELU") {
@@ -203,18 +176,15 @@ namespace noodle {
         }
 
         vec_t forward(const vec_t &io) {
-            input = io;
-            output = input;
             num_t re = this->leakiness;
-            output = output.unaryExpr([&](num_t x) -> num_t {
+            return io.unaryExpr([&](num_t x) -> num_t {
                 return x > 0 ? x / re : 0;
             });
-            return output;
         }
 
-        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
+        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             num_t re = this->leakiness;
-            vec_t cd = input.unaryExpr([&](num_t x) -> num_t {
+            vec_t cd = state.output.unaryExpr([&](num_t x) -> num_t {
                 return x > 0 ? 1 : 1 / re;
             });
             state.bp_output = output_error.cwiseProduct(cd);
@@ -236,7 +206,7 @@ namespace noodle {
             return output;
         }
 
-        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
+        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             state.bp_output = output_error; //output_error.cwiseProduct(x);
             state.bp_output *= 2;
         }
@@ -272,14 +242,12 @@ namespace noodle {
             this->is_training = training;
         }
 
-        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
+        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             state.bp_output = output_error;
         }
     };
 
     struct pepper_layer : public abstract_layer {
-        vec_t input = row_vector();
-        vec_t output = row_vector();
         num_t ratio = 1;
         bool is_training = true;
         std::default_random_engine generator;
@@ -293,17 +261,15 @@ namespace noodle {
         }
 
         vec_t forward(const vec_t &io) {
-            input = io;
-            output = input;
             if (is_training) {
                 std::uniform_real_distribution<num_t> distribution(-1, 1);
-                output = output.unaryExpr([&](num_t x) -> num_t {
+                return io.unaryExpr([&](num_t x) -> num_t {
                     auto pepper = distribution(generator);
                     return x + x * ratio * pepper;
                 });
             }
 
-            return output;
+            return io;
         }
 
         void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
@@ -312,33 +278,11 @@ namespace noodle {
     };
 
     struct soft_max_layer : public abstract_layer {
-        vec_t input = row_vector();
-        vec_t output = row_vector();
-
         soft_max_layer() : abstract_layer("SOFTMAX") {
         }
 
-        soft_max_layer(const soft_max_layer &right) : abstract_layer("SOFTMAX") {
-            *this = right;
-        }
-
-        soft_max_layer &operator=(const soft_max_layer &right) {
-            input = right.input;
-            output = right.output;
-            return *this;
-        }
-
-        const vec_t &get_input() const {
-            return input;
-        }
-
-        vec_t &get_input() {
-            return input;
-        }
-
         vec_t forward(const vec_t &io) {
-            input = io;
-            output = input;
+            vec_t output = io;
             /// the simple softmax function as known by everyone
             /// sum of output is 1
             output.array() -= output.array().maxCoeff();
@@ -348,7 +292,7 @@ namespace noodle {
             return output;
         }
 
-        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
+        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
             assert(output_error.size() > 0);
             assert(output.rows() == input.rows());
 
