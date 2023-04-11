@@ -24,7 +24,7 @@ namespace noodle {
             return output;
         }
 
-        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
+        void bp(gradients& state, gradients& shared, const vec_t &output_error, num_t learning_rate) {
             state.bp_output = output_error;
         }
 

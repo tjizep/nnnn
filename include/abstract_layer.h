@@ -6,6 +6,7 @@
 #define NNNN_ABSTRACT_LAYER_H
 
 #include <string>
+#include "message.h"
 
 namespace noodle {
     using namespace std;
@@ -19,19 +20,17 @@ namespace noodle {
     /// backprop state data
     struct gradients {
         /// results for forward operation
-        vec_t activation = row_vector(); /// same as input or 'x'
+        vec_t activation = row_vector(); /// same as input or 'x[i]'
         vector<vec_t> activations; /// same as input or 'x's
-        vec_t output = row_vector(); /// as in 'y'
+        vec_t output = row_vector(); /// as in 'y' or f('x[i]')
         vector<vec_t> errors;
 
         /// result for gradient backpropagation
-        vec_t bp_input = row_vector(); // aka gradient
-        vec_t bp_output = row_vector();
+        vec_t bp_input = row_vector(); /// aka error f'('x[i-1]')
+        vec_t bp_output = row_vector(); /// f'('x[i]') or gradient
 
-        /// batch gradient variables
-        mat_t mini_batch_update_weights = matrix();
-        vec_t mini_batch_update_biases = row_vector();
-
+        /// gradient variables
+        message variables;
 
     };
 }

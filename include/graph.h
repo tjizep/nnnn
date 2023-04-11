@@ -74,13 +74,26 @@ namespace noodle{
         index_t last_added = null_node;
 
 
+        void update_batch_variables(num_t train_percent) {
+            auto isource = nodes.begin();
+            for (; isource != nodes.end(); ++isource) {
+                isource->variables.get_number("train_percent") = train_percent; /// slimy hack
+                print_dbg("update_batch_variables", isource->name, train_percent);
+                var_layer_update_batch_variables(isource->operation, isource->variables);
+            }
+        }
         void update_layers(graph &dest) const  {
             auto isource = nodes.begin();
             auto idest = dest.nodes.begin();
             for (; isource != nodes.end() && idest != dest.nodes.end(); ++isource, ++idest) {
+                if (!var_layer_update_variables(idest->operation, idest->variables, isource->operation, isource->variables)) {
+                    fatal_err("layer type not found");
+                }
+#if 0
                 if (!var_layer_update_bp(idest->operation, isource->operation)) {
                     fatal_err("layer type not found");
                 }
+#endif
             }
         }
         void start_sample(){
@@ -153,13 +166,26 @@ namespace noodle{
             empty_node.clear();
             nodes.clear();
             index.clear();
+
         }
 
         index_t id(const string &name) {
             return resolve(name).index;
         }
-
         index_t add(const node &n) {
+            if(nodes.empty()){
+                node shared;
+                shared.name = "SHARED";
+                _add(shared);
+            }
+            if(n.name == "SHARED"){
+                fatal_err("cannot add shared node");
+            }
+            return _add(n);
+        }
+
+        index_t _add(const node &n) {
+
             print_dbg("last_added",last_added);
             auto i = index.find(n.name);
             index_t x = null_node;
@@ -187,6 +213,12 @@ namespace noodle{
             last_added = x;
             print_dbg("added ",at(x).name);
             return x;
+        }
+        node& shared(){
+            return at(0);
+        }
+        const node& shared() const {
+            return at(0);
         }
         node& at(index_t ix){
             if (ix >= 0 && ix < nodes.size()) return nodes[ix];
@@ -453,6 +485,7 @@ namespace noodle{
             /// note: the role names "destinations" and "sources" are used in the forward
             /// sense so in the backward sense their respective roles reverses
             bool backward(graph& model, num_t learning_rate){
+                model.shared().variables.get_number("learning_rate") = learning_rate;
                 index_t inputs = resolve(model).inputs;
                 index_t outputs = resolve(model).outputs;
                 print_dbg(inputs,outputs,get_error(model).rows(),resolve(model).name);
@@ -460,11 +493,11 @@ namespace noodle{
                     fatal_err("the required output vector size (outputs)",outputs,"does not match the given",get_error(model).rows());
                     return false;
                 }
-                /// "destinations" are realy the sources of the backprop operation
+                /// "destinations" are really the sources of the backprop operation
                 if(resolve(model).destinations.size() > 1){
-                    var_layer_bp(resolve(model), resolve(model).operation, get_errors(model), learning_rate);
+                    var_layer_bp(resolve(model), model.shared(), resolve(model).operation, get_errors(model));
                 }else{
-                    var_layer_bp(resolve(model), resolve(model).operation, get_error(model),learning_rate);
+                    var_layer_bp(resolve(model), model.shared(), resolve(model).operation, get_error(model));
                 }
 #if 0
                 if(outputs != resolve(model).output.rows()){

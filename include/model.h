@@ -27,7 +27,7 @@ namespace noodle {
             input = io;
             return input;
         }
-        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
+        void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             state.bp_output = output_error;
         }
     };
@@ -44,7 +44,7 @@ namespace noodle {
             input = io;
             return input;
         }
-        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
+        void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             state.bp_output = output_error;
         }
     };
@@ -125,6 +125,16 @@ namespace noodle {
             return true;
         }
 
+        bool update_batch_variables(message& dest_variables){
+            if constexpr (has_member(V, update_batch_variables(dest_variables)))
+                impl.update_batch_variables(dest_variables);
+            return true;
+        }
+        bool update_variables(message& dest_variables, const model_member<V> &source, const message& src_variables){
+            if constexpr (has_member(V, update_variables(dest_variables, source.impl, src_variables)))
+                impl.update_variables(dest_variables, source.impl, src_variables);
+            return true;
+        }
         bool raw_copy_from(const model_member<V> &source) {
             if constexpr (has_member(V, raw_copy_from(source.impl)))
                 impl.raw_copy_from(source.impl);
@@ -137,18 +147,18 @@ namespace noodle {
          * @param learning_rate
          * @return the result error to send to layers above (with lower layer depth)
          */
-        void bp(gradients& state, const vec_t &input_error, num_t learning_rate) {
-            if constexpr (has_member(V, bp(state, input_error, learning_rate))) {
-                impl.bp(state, input_error, learning_rate);
+        void bp(gradients& state, gradients& shared, const vec_t &input_error) {
+            if constexpr (has_member(V, bp(state, shared, input_error))) {
+                impl.bp(state, shared, input_error);
             }else{
                 state.bp_output = input_error;
             }
 
         }
 
-        void bp(gradients& state, const vector<vec_t> &input_errors, num_t learning_rate) {
-            if constexpr (has_member(V, bp(input_errors, learning_rate)))
-                impl.bp(input_errors, learning_rate);
+        void bp(gradients& state, gradients& shared, const vector<vec_t> &input_errors) {
+            if constexpr (has_member(V, bp(state, shared, input_errors)))
+                impl.bp(state, shared, input_errors);
 
         }
 
@@ -227,8 +237,6 @@ namespace noodle {
         }
     };
 
-    class layer_holder;
-
     typedef std::variant<
             model_member<empty_layer>,
             model_member<reference_layer>,
@@ -268,18 +276,6 @@ namespace noodle {
             var_set_training_(m, training);
         }
     }
-    void var_update_weights_(layer &l, num_t train_percent) {
-        std::visit([&](auto &&arg) {
-            arg.update_weights(train_percent);
-        }, l);
-    }
-    template<typename ModelType>
-    void var_update_weights(ModelType &model, num_t train_percent) {
-        for (auto &m: model) {
-            var_update_weights_(m,train_percent);
-        }
-    }
-
     void var_start_batch_(layer &l) {
         std::visit([&](auto &&arg) {
             arg.start_batch();
@@ -340,7 +336,25 @@ namespace noodle {
             return arg.forward(input);
         }, v);
     }
+    bool var_layer_update_variables(layer &dest, message& dest_variables, const layer &source, const message& src_variables){
+        std::visit([&](auto &&arg) {
+            typedef decltype(arg.impl) concrete_layer_type;
 
+            if (const model_member<concrete_layer_type> *src = std::get_if<model_member<concrete_layer_type>>(
+                    &source)) {
+                arg.update_variables(dest_variables, *src, src_variables);
+            }
+        }, dest);
+
+        return true;
+    }
+    bool var_layer_update_batch_variables(layer &dest, message& dest_variables){
+        std::visit([&](auto &&arg) {
+            arg.update_batch_variables(dest_variables);
+        }, dest);
+
+        return true;
+    }
     bool var_layer_update_bp(layer &dest, const layer &source) {
         std::visit([&](auto &&arg) {
             typedef decltype(arg.impl) concrete_layer_type;
@@ -355,7 +369,7 @@ namespace noodle {
     }
 
 
-    bool var_layer_raw_copy(layer &dest, const layer &source) {
+    bool _D_var_layer_raw_copy(layer &dest, const layer &source) {
         std::visit([&](auto &&arg) {
             typedef decltype(arg.impl) concrete_layer_type;
 
@@ -368,14 +382,14 @@ namespace noodle {
         return true;
     }
 
-    static inline void var_layer_bp(gradients& state, layer &v, const vec_t &input_error, num_t learning_rate) {
+    static inline void var_layer_bp(gradients& state, gradients& shared, layer &v, const vec_t &input_error) {
         std::visit([&](auto &&arg) {
-            arg.bp(state, input_error, learning_rate);
+            arg.bp(state, shared, input_error);
         }, v);
     }
-    static inline void var_layer_bp(gradients& state, layer &v, const vector<vec_t> &input_error, num_t learning_rate) {
+    static inline void var_layer_bp(gradients& state, gradients& shared, layer &v, const vector<vec_t> &input_error) {
         return std::visit([&](auto &&arg) {
-            arg.bp(state, input_error, learning_rate);
+            arg.bp(state, shared, input_error);
         }, v);
     }
 

@@ -26,9 +26,10 @@ namespace noodle {
         vec_t output = row_vector();
         /// temp data during training
         vec_t input_error = row_vector();
+#if 0
         mat_t mini_batch_update_weights = matrix();
         vec_t mini_batch_update_biases = row_vector();
-
+#endif
         fc_layer(uint32_t in_size, uint32_t out_size, num_t sparseness = 0, num_t sparsity_greed = 2.5, num_t momentum = 0) : abstract_layer(
                 "FULLY CONNECTED") {
             print_dbg("name", name);
@@ -125,32 +126,28 @@ namespace noodle {
         void end_batch() {
         }
 
-
-        void update_weights(const num_t train_percent) {
-            if (mini_batch_update_weights.size() == 0) return;
-
-            weights += mini_batch_update_weights;
-            biases += mini_batch_update_biases;
-            if (sparseness.sparseness && train_percent > 0.05)
+        void update_batch_variables(message& variables) {
+            if (variables.get_mat("mini_batch_update_weights").size() == 0) return;
+            //print_dbg("batch update weights",variables.get_mat("mini_batch_update_weights").array().sum());
+            weights += variables.get_mat("mini_batch_update_weights");
+            biases += variables.get_vector("mini_batch_update_biases");
+            if (sparseness.sparseness && variables.get_number("train_percent") > 0.05)
                 sparseness.reduce_weights(weights);
 
             round_();
 
-            mini_batch_update_weights = matrix();
-            mini_batch_update_biases = row_vector();
+            variables.get_mat("mini_batch_update_weights") = matrix();
+            variables.get_vector("mini_batch_update_biases") = row_vector();
+
         }
 
-        /***
-         * called when shards need to update the origin model
-         * not thread safe so latches/locks should be taken
-         * @param fc the shard
-         */
-        void update_bp_from(const fc_layer &fc) {
-            if (fc.mini_batch_update_weights.size() > 0) {
-                assign_add(mini_batch_update_weights, fc.mini_batch_update_weights);
+
+        void update_variables(message& dest_variables, const fc_layer &fc, const message& src_variables) {
+            if (src_variables.get_mat("mini_batch_update_weights").size() > 0) {
+                assign_add(dest_variables.get_mat("mini_batch_update_weights"), src_variables.get_mat("mini_batch_update_weights"));
             }
-            if (fc.mini_batch_update_biases.size() > 0) {
-                assign_add(mini_batch_update_biases, fc.mini_batch_update_biases);
+            if (src_variables.get_vector("mini_batch_update_biases").size() > 0) {
+                assign_add(dest_variables.get_vector("mini_batch_update_biases"), src_variables.get_vector("mini_batch_update_biases"));
             }
         }
 
@@ -176,35 +173,35 @@ namespace noodle {
             output = fc.output;
             momentum = 0;
             sparseness = fc.sparseness;
-            mini_batch_update_weights.array() = 0;// = fc.mini_batch_update_weights;
-            mini_batch_update_biases.array() = 0;// = fc.mini_batch_update_biases;
+            //mini_batch_update_weights.array() = 0;// = fc.mini_batch_update_weights;
+            //mini_batch_update_biases.array() = 0;// = fc.mini_batch_update_biases;
             round_();
 
         }
 
         __attribute__((noinline))
-        void update_mini_batch_weights(num_t learning_rate, const vec_t output_error) {
+        void update_mini_batch_weights(gradients& state, num_t learning_rate, const vec_t output_error) {
 
             vec_t b_delta;
 
             b_delta = -learning_rate * output_error;
-
-            //assign_add(mini_batch_update_weights, weights_error);
-            assign_add(mini_batch_update_biases, b_delta);
+            assign_add(state.variables.get_vector("mini_batch_update_biases"), b_delta);
         }
 
         /// output error is from next layer below this one (since its reverse prop) or start
-        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
-
+        void bp(gradients& state, gradients& shared, const vec_t &output_error) {
 
             assert(out_size == 0 || out_size == output_error.rows());
             assert(weights.size() > 0);
+            num_t learning_rate = shared.variables.get_number("learning_rate");
 
             //weights_error = output_error * input.transpose();
             //sparseness.project_mul(weights_error, output_error, input, -learning_rate);
-            sparseness.project_mul_add(mini_batch_update_weights, output_error, state.activation, -learning_rate);
+            /// fusion operation into mini_batch_update_weights
+            sparseness.project_mul_add(state.variables.get_mat("mini_batch_update_weights"), output_error,
+                                       state.activation, -learning_rate);
 
-            update_mini_batch_weights(learning_rate, output_error);
+            update_mini_batch_weights(state, learning_rate, output_error);
             index_t index = 1;
             if (index > 0) {
 

@@ -37,7 +37,6 @@ namespace noodle {
 
     public:
 
-
         trainer(const training_set &data, num_t mini_batch_size, std::array<num_t, 2> learning_rate) {
             auto prev = 0;
             this->data = data;
@@ -153,8 +152,12 @@ namespace noodle {
                                     unique_lock<mutex> l(mut);
 
                                     update_layers(model, tmod[at]);
-                                    var_update_weights(model,
-                                                       (num_t) ix / (num_t) total); // accumulate all the errors
+
+                                    update_batch_variables(model,
+                                                           (num_t) ix / (num_t) total);
+
+                                    //var_update_weights(model,
+                                    //                   (num_t) ix / (num_t) total); // accumulate all the errors
                                     tmod[at] = model;
                                     //raw_copy(tmod[at], model);
 
@@ -266,6 +269,9 @@ namespace noodle {
         void update_layers(graph &dest, const graph &source) {
             source.update_layers(dest);
         }
+        void update_batch_variables(graph &dest, num_t train_percent) {
+            dest.update_batch_variables(train_percent);
+        }
 
         /**
          * train a mini-batch
@@ -292,8 +298,8 @@ namespace noodle {
 
             }
             var_end_batch(model);
-            var_update_weights(model, mini_batch_size_); // accumulate all the errors
-
+            //var_update_weights(model, mini_batch_size_); // accumulate all the errors
+            update_batch_variables(model, mini_batch_size_);
         }
 
         template<typename ModelType>

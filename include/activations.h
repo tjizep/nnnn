@@ -98,7 +98,7 @@ namespace noodle {
             return io.unaryExpr(sigmoid{});
         }
 
-        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
+        void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             assert(output_error.size() > 0);
             vec_t cd = state.output.unaryExpr(sigmoid_derivative{});
             assert(output.rows() == input.rows());
@@ -116,7 +116,7 @@ namespace noodle {
             return io.unaryExpr(swish{beta});
         }
 
-        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
+        void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             assert(output_error.size() > 0);
             vec_t cd = state.output.unaryExpr(swish_derivative{beta});
             assert(output.rows() == input.rows());
@@ -132,7 +132,7 @@ namespace noodle {
             return io.unaryExpr(tanh_activation{});
         }
 
-        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
+        void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             assert(output_error.size() > 0);
             vec_t cd = state.output.unaryExpr(tanh_derivative{});
             assert(state.output.rows() == input.rows());
@@ -158,7 +158,7 @@ namespace noodle {
             return io.unaryExpr(low_sigmoid{flatness});
         }
 
-        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
+        void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             assert(output_error.size() > 0);
             vec_t cd = state.output.unaryExpr(low_sigmoid_derivative{flatness});
             assert(state.output.rows() == input.rows());
@@ -182,7 +182,7 @@ namespace noodle {
             });
         }
 
-        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
+        void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             num_t re = this->leakiness;
             vec_t cd = state.output.unaryExpr([&](num_t x) -> num_t {
                 return x > 0 ? 1 : 1 / re;
@@ -206,7 +206,7 @@ namespace noodle {
             return output;
         }
 
-        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
+        void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             state.bp_output = output_error; //output_error.cwiseProduct(x);
             state.bp_output *= 2;
         }
@@ -242,7 +242,7 @@ namespace noodle {
             this->is_training = training;
         }
 
-        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
+        void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             state.bp_output = output_error;
         }
     };
@@ -272,7 +272,7 @@ namespace noodle {
             return io;
         }
 
-        void bp(gradients& state, const vec_t &output_error, num_t learning_rate) {
+        void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             state.bp_output = output_error;
         }
     };
@@ -292,7 +292,7 @@ namespace noodle {
             return output;
         }
 
-        void bp(gradients& state, const vec_t &output_error, num_t /*learning_rate*/) {
+        void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             assert(output_error.size() > 0);
             assert(output.rows() == input.rows());
 
