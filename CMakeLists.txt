@@ -16,5 +16,5 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -msse4.1 -std=c++20" )
 include_directories(include ${EIGEN3_INCLUDE_DIR} ${JSON_INCLUDE_DIR} ${SSE2NEON_INCLUDE_DIR} ${RVA_INCLUDE_DIR})
 
 
-add_executable(nnnn train_network.cpp include/activations.h include/optimizers.h include/sparsity.h repo/sse2neon/sse2neon.h include/model.h include/abstract_layer.h include/json/model_json.h include/ensemble.h include/rnn.h include/diffrentiable.h include/graph.h include/message.h include/json/message_json.h include/json/training_set_json.h include/json/inference_json.h include/json/validate_json.h include/json/node_json.h)
+add_executable(nnnn train_network.cpp)
 target_link_libraries(nnnn ${CMAKE_THREAD_LIBS_INIT})

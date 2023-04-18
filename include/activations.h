@@ -101,7 +101,7 @@ namespace noodle {
         void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             assert(output_error.size() > 0);
             vec_t cd = state.output.unaryExpr(sigmoid_derivative{});
-            assert(output.rows() == input.rows());
+            assert(state.output.rows() == state.activation.rows());
             state.bp_output = output_error.cwiseProduct(cd);
         }
     };
@@ -119,7 +119,7 @@ namespace noodle {
         void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             assert(output_error.size() > 0);
             vec_t cd = state.output.unaryExpr(swish_derivative{beta});
-            assert(output.rows() == input.rows());
+            assert(state.output.rows() == state.activation.rows());
             state.bp_output = output_error.cwiseProduct(cd);
         }
     };
@@ -135,7 +135,7 @@ namespace noodle {
         void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             assert(output_error.size() > 0);
             vec_t cd = state.output.unaryExpr(tanh_derivative{});
-            assert(state.output.rows() == input.rows());
+            assert(state.output.rows() == state.activation.rows());
             state.bp_output = output_error.cwiseProduct(cd);
         }
     };
@@ -161,7 +161,7 @@ namespace noodle {
         void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             assert(output_error.size() > 0);
             vec_t cd = state.output.unaryExpr(low_sigmoid_derivative{flatness});
-            assert(state.output.rows() == input.rows());
+            assert(state.output.rows() == state.activation.rows());
             state.bp_output = output_error.cwiseProduct(cd);
 
         }
@@ -294,7 +294,7 @@ namespace noodle {
 
         void bp(gradients& state, gradients& shared, const vec_t &output_error) {
             assert(output_error.size() > 0);
-            assert(output.rows() == input.rows());
+            assert(state.output.rows() == state.activation.rows());
 
 #if 0
             vec_t softmax = output;
